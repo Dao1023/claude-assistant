@@ -1,0 +1,4 @@
+watchdog
+pystray
+pillow
+windows-toasts
