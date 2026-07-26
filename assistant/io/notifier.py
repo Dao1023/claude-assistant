@@ -3,8 +3,8 @@ from datetime import datetime
 
 from windows_toasts import Toast, WindowsToaster
 
-from .config import APP_NAME
-from .inbox import set_status
+from ..config import APP_NAME
+from ..core.inbox import set_status
 from .launcher import launch_claude
 
 toaster = WindowsToaster(APP_NAME)

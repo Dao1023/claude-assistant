@@ -1,8 +1,13 @@
-"""配置与路径常量"""
+"""配置与路径常量(最底层,谁也不 import 其他模块)"""
 from pathlib import Path
 
 BASE = Path(__file__).parent.parent          # 项目根目录
-INBOX = BASE / "inbox.json"                  # 信箱文件(Claude Code ↔ APP 契约)
+DATA = BASE / "data"                         # 运行期数据目录(进 .gitignore)
+DATA.mkdir(exist_ok=True)
+
+INBOX = DATA / "inbox.json"                  # 信箱文件(Claude Code ↔ APP 契约)
+COMMANDS = DATA / "commands.json"            # 指令文件(Claude Code → APP)
+DB_PATH = DATA / "assistant.db"              # SQLite 数据库
 
 # claude.exe 路径(winget 安装)
 CLAUDE_EXE = r"C:\Users\Dao\AppData\Local\Microsoft\WinGet\Packages\Anthropic.ClaudeCode_Microsoft.Winget.Source_8wekyb3d8bbwe\claude.exe"

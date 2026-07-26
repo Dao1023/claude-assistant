@@ -1,7 +1,7 @@
 """信箱读写与状态回写"""
 import json
 
-from .config import INBOX
+from ..config import INBOX
 
 
 def load_inbox():

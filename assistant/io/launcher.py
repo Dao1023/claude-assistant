@@ -1,7 +1,7 @@
 """唤起 Claude Code"""
 import subprocess
 
-from .config import CLAUDE_EXE, VAULT
+from ..config import CLAUDE_EXE, VAULT
 
 
 def launch_claude(msg):

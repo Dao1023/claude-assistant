@@ -1,8 +1,8 @@
 """调度:判断哪些提醒该弹了"""
 from datetime import datetime
 
-from .inbox import load_inbox
-from .notifier import notify
+from ..core.inbox import load_inbox
+from ..io.notifier import notify
 
 
 def due(reminder):
