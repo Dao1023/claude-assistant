@@ -5,7 +5,7 @@
 import sqlite3
 import uuid
 
-from ..config import DB_PATH
+from .. import config
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS tasks (
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS push_log (
 
 
 def connect():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(config.DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn

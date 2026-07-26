@@ -15,11 +15,17 @@ def make_icon():
     return img
 
 
-def run_tray(on_check):
-    """启动托盘。on_check:点'立即检查'时调用的回调(通常是 app 层的 tick)。"""
+def run_tray(on_check, on_exit=None):
+    """启动托盘。on_check:点'立即检查';on_exit:退出前回调(如清理通知)。"""
     icon = pystray.Icon("claude-assistant", make_icon(), APP_NAME)
+
+    def _quit():
+        if on_exit:
+            on_exit()
+        icon.stop()
+
     icon.menu = pystray.Menu(
         pystray.MenuItem("立即检查", lambda: on_check()),
-        pystray.MenuItem("退出", lambda: icon.stop()),
+        pystray.MenuItem("退出", _quit),
     )
     icon.run()
