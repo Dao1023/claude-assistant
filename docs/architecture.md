@@ -35,6 +35,16 @@
 
 **一句话:Claude Code 负责"理解",APP 负责"记住 + 追到底"。**
 
+## 任务模型(双驱动)
+
+APP 的任务系统围绕两类驱动组织(详见 [task-system.md](task-system.md)):
+
+- **start 驱动**:越久没做越重要,`log(发生以来/正常周期)`。
+- **end 驱动(DDL)**:越近截止越急,`-log(剩余时间)`,过期即失。
+- **周期**是叠加在 start/end 上的修饰符,完成后自动克隆下一个。
+
+存储用 **SQLite**(见 [storage.md](storage.md)),与 Claude Code 的通信仍是文件指令。
+
 ## 为什么 APP 要持有任务库(而不是 Claude Code)
 
 - **上下文成本**:任务多了,Claude Code 每次对话全量读取,慢且贵。

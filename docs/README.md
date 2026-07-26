@@ -6,10 +6,13 @@
 
 | 文档 | 内容 |
 |---|---|
-| [architecture.md](architecture.md) | 整体架构,APP 与 Claude Code 的职责边界,为什么 V2 要让 APP 变"聪明" |
-| [task-system.md](task-system.md) | 任务系统:数据模型、增删改查、deadline / start-time 两种重要性增长模型 |
-| [lifecycle.md](lifecycle.md) | 任务生命周期状态机 + 催促策略(温和/升级/危机)+ 防过载节流 |
-| [protocols.md](protocols.md) | 文件协议:`inbox.json`(指令)与 `tasks.json`(任务库)的 schema |
+| [requirements.md](requirements.md) | **需求**(用户的原始思考,收敛后):任务两类驱动、log 重要性算法、tag、推送层独立 |
+| [architecture.md](architecture.md) | 整体架构,APP 与 Claude Code 的职责边界,双驱动任务模型概览 |
+| [task-system.md](task-system.md) | 任务系统:start/end 双驱动、周期修饰符、log 重要性算法、任务核心属性 |
+| [lifecycle.md](lifecycle.md) | 推送生命周期(挂在任务上)+ 三档催促 + 防过载节流 |
+| [storage.md](storage.md) | 存储选型:为什么 JSON → SQLite,与 Claude Code 的通信方式 |
+
+> 阅读顺序:requirements(想做什么)→ architecture(怎么分工)→ task-system / lifecycle(两块核心)→ storage(数据怎么存)。
 
 ## 为什么从 V1 升级到 V2
 
