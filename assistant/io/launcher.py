@@ -58,11 +58,13 @@ def _server_thread(port):
 
     关键:子线程异常默认被静默吞掉(pythonw 无窗口更看不见),
     必须落盘才能诊断"服务为什么没起来"。
+    启动前先把实际端口写进 data/panel_port,供 AI/用户发现服务地址。
     """
     import traceback
     from ..config import DATA
     log = DATA / "panel_server.log"
     try:
+        (DATA / "panel_port").write_text(str(port), encoding="utf-8")
         from .server import run
         run(port)
     except Exception:
