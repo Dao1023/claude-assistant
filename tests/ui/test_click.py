@@ -1,7 +1,7 @@
 """测试 InteractableWindowsToaster 的点击回调能否触发。"""
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from windows_toasts import InteractableWindowsToaster, Toast
 

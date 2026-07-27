@@ -5,3 +5,8 @@ __pycache__/
 .vscode/
 .idea/
 data/
+*.egg-info/
+
+# 前端
+frontend/node_modules/
+frontend/dist/
