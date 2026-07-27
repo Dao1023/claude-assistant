@@ -2,24 +2,21 @@
 
 属于 core 层:纯任务逻辑,不碰弹窗/唤起/HTTP。
 调用方:HTTP 接口(io/server.py)、催办小卡(io/pusher.py)。
+时间字段内部一律 Unix 秒级 int(见 core/timeutil.py)。
 """
-from datetime import datetime, timedelta
-
 from . import db
+from .timeutil import SECONDS_PER_DAY, now_ts
 
 
 def now():
-    return datetime.now().strftime("%Y-%m-%d %H:%M")
-
-
-def today():
-    return datetime.now().strftime("%Y-%m-%d")
+    """当前 Unix 秒级时间戳(写 created / pushed_at 用)。"""
+    return now_ts()
 
 
 # ---------- 各动作 ----------
 
 def do_add(conn, p):
-    anchor = p.get("anchor") or (today() if p.get("drive") == "start" else None)
+    anchor = p.get("anchor") or (now() if p.get("drive") == "start" else None)
     tid = db.add_task(
         conn,
         title=p["title"],
@@ -45,12 +42,11 @@ def do_done(conn, p):
     if task["is_cyclic"]:
         sched = conn.execute("SELECT * FROM schedule WHERE task_id=?", (tid,)).fetchone()
         cycle = sched["cycle_days"] or 1
-        # 克隆下一个
-        new_anchor = today() if task["drive"] == "start" else None
+        # 克隆下一个:start 锚点重置为现在;end 截止按周期秒级顺延(精确保留时分,如"次日 4:00")
+        new_anchor = now() if task["drive"] == "start" else None
         new_deadline = None
-        if task["drive"] == "end" and sched["deadline"]:
-            d = datetime.strptime(sched["deadline"], "%Y-%m-%d %H:%M") + timedelta(days=cycle)
-            new_deadline = d.strftime("%Y-%m-%d %H:%M")
+        if task["drive"] == "end" and sched["deadline"] is not None:
+            new_deadline = int(sched["deadline"]) + cycle * SECONDS_PER_DAY
         db.add_task(conn, task["title"], task["drive"], is_cyclic=1,
                     priority=task["priority"], note=task["note"], created=now(),
                     deadline=new_deadline, anchor=new_anchor, cycle_days=cycle,
