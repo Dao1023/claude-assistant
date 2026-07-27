@@ -22,6 +22,25 @@ def _task_interval(task):
     return task.get("recurrence_interval")
 
 
+def _is_future_period(task, now=None):
+    """周期 end 任务是否还轮不到(剩余 > 一个周期,是明天/后天那份)。
+
+    每日 4 点重置这类周期任务:今天那份(剩余 < 周期)该催;
+    明天那份(剩余 > 周期)今晚不该弹——等今天那份 4 点 closed、它顺延成当前份再催。
+    一次性 end(无 recurrence_interval)不过滤,返回 False。
+    """
+    if task["drive"] != "end":
+        return False
+    interval = task.get("recurrence_interval")
+    if not interval or interval <= 0:
+        return False                       # 一次性 end,不按周期过滤
+    now = now if now is not None else now_ts()
+    deadline = task.get("deadline")
+    if deadline is None:
+        return False
+    return (int(deadline) - now) > int(interval)
+
+
 def _cooling_down(task, last_at, now=None):
     """任务是否在冷却(不该催)。snooze_until 优先;否则按 间隔×1/4。
 
@@ -86,6 +105,8 @@ def tick_push():
 
     picked = None
     for task in ends + starts:             # end 优先,再 start(均已排序)
+        if _is_future_period(task, now):   # 明天/后天的周期任务,今晚不催
+            continue
         nag_count, last_at = db.push_stats(conn, task["id"])
         if _cooling_down(task, last_at, now):
             continue

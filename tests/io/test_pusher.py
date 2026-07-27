@@ -110,6 +110,49 @@ def test_tick_push_skips_snoozed(conn, monkeypatch):
     assert n == 0 and shown == []
 
 
+# ---------- 周期 end:不提前催下一天(通知层过滤) ----------
+
+def test_future_period_helper():
+    # 明天的每日(剩余 1.5 周期)→ 是未来周期,该过滤;今天的每日(剩余 0.5 周期)→ 不过滤
+    future = _task("end", deadline=NOW + int(1.5 * DAY), recurrence_interval=DAY)
+    current = _task("end", deadline=NOW + int(0.5 * DAY), recurrence_interval=DAY)
+    oneoff = _task("end", deadline=NOW + 30 * DAY, recurrence_interval=None)
+    assert pusher._is_future_period(future, now=NOW) is True
+    assert pusher._is_future_period(current, now=NOW) is False
+    assert pusher._is_future_period(oneoff, now=NOW) is False   # 一次性 end 不过滤
+
+
+def test_tick_push_skips_tomorrows_daily(conn, monkeypatch):
+    # 只有「明天的每日」(剩余 > 1 周期)→ 不该弹
+    actions.do_add(conn, {"title": "明日原神", "drive": "end",
+                          "deadline": NOW + int(1.5 * DAY), "recurrence_interval": DAY})
+    shown = []
+    monkeypatch.setattr(pusher, "show_task_card", lambda task, stage, *a: shown.append(task["title"]))
+    n = pusher.tick_push()
+    assert n == 0 and shown == []
+
+
+def test_tick_push_picks_todays_daily(conn, monkeypatch):
+    # 「今天的每日」(剩余 < 1 周期)→ 该弹
+    actions.do_add(conn, {"title": "今日原神", "drive": "end",
+                          "deadline": NOW + int(0.5 * DAY), "recurrence_interval": DAY})
+    shown = []
+    monkeypatch.setattr(pusher, "show_task_card", lambda task, stage, *a: shown.append(task["title"]))
+    n = pusher.tick_push()
+    assert n == 1 and shown == ["今日原神"]
+
+
+def test_tick_push_future_daily_falls_back_to_start(conn, monkeypatch):
+    # 明天的每日被过滤后,还有 start → 退而推 start
+    actions.do_add(conn, {"title": "明日原神", "drive": "end",
+                          "deadline": NOW + int(1.5 * DAY), "recurrence_interval": DAY})
+    actions.do_add(conn, {"title": "论文", "drive": "start", "expected_duration": 15 * DAY})
+    shown = []
+    monkeypatch.setattr(pusher, "show_task_card", lambda task, stage, *a: shown.append(task["title"]))
+    n = pusher.tick_push()
+    assert n == 1 and shown == ["论文"]
+
+
 # ---------- 克隆清 snooze_until ----------
 
 def test_clone_clears_snooze(conn):
