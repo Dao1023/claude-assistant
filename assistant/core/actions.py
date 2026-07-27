@@ -53,23 +53,26 @@ def _clone_next(conn, task, *, anchor=None, deadline=None):
 
 
 def do_done(conn, p):
-    """完成任务(-> done)。周期任务克隆下一个实例。"""
+    """完成任务(-> done)。周期任务克隆下一个实例。cyclic 返回是否克隆了。"""
     tid = p["task_id"]
     task = db.get_task(conn, tid)
     if not task:
         return {"error": "task not found"}
+    cloned = False
     if task["drive"] == "start" and task["is_cyclic"]:
         # start 周期:锚点重置为 now
         _clone_next(conn, task, anchor=now())
+        cloned = True
     elif task["drive"] == "end":
-        sched = conn.execute("SELECT recurrence_interval FROM schedule WHERE task_id=?",
+        sched = conn.execute("SELECT deadline, recurrence_interval FROM schedule WHERE task_id=?",
                              (tid,)).fetchone()
-        if sched["recurrence_interval"]:
+        if sched["recurrence_interval"] and sched["deadline"] is not None:
             # end 周期:deadline 顺延一个间隔(精确保留时分)
             _clone_next(conn, task,
-                        deadline=int(task["deadline"]) + int(sched["recurrence_interval"]))
+                        deadline=int(sched["deadline"]) + int(sched["recurrence_interval"]))
+            cloned = True
     db.set_status(conn, tid, "done")
-    return {"task_id": tid, "done": True, "cyclic": bool(task["is_cyclic"])}
+    return {"task_id": tid, "done": True, "cyclic": cloned}
 
 
 def close_overdue(conn, now=None):

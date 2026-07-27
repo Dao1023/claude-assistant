@@ -24,7 +24,7 @@ def client(tmp_path, monkeypatch):
 
 
 def _add(client, **kw):
-    payload = {"title": "任务", "drive": "end", "deadline": str(TODAY) + " 18:00"}
+    payload = {"title": "任务", "drive": "end", "deadline": str(TODAY) + " 23:59"}
     payload.update(kw)
     return client.post("/api/tasks", json=payload)
 
@@ -36,11 +36,20 @@ def test_add_task(client):
     assert client.get(f"/api/tasks/{tid}").json()["title"] == "写周报"
 
 
-def test_add_cyclic_by_cycle_days(client):
-    # 只传 cycle_days,应自动视为周期任务
-    r = _add(client, cycle_days=7)
+def test_add_end_recurrence_days(client):
+    # end 传 recurrence_days,详情应能看到(秒->天数)
+    r = _add(client, recurrence_days=7)
     tid = r.json()["task_id"]
-    assert db.get_task(db.connect(), tid)["is_cyclic"] == 1
+    assert client.get(f"/api/tasks/{tid}").json()["recurrence_days"] == 7.0
+
+
+def test_add_start_expected_days_not_auto_cyclic(client):
+    # start 填 expected_days 不自动变周期(解耦)
+    r = client.post("/api/tasks", json={
+        "title": "论文", "drive": "start", "expected_days": 15})
+    tid = r.json()["task_id"]
+    d = client.get(f"/api/tasks/{tid}").json()
+    assert d["expected_days"] == 15.0 and d["is_cyclic"] == 0
 
 
 def test_add_invalid_drive_rejected(client):
@@ -56,11 +65,11 @@ def test_update_task(client):
     assert d["title"] == "改名了" and d["priority"] == 5
 
 
-def test_done_cyclic_clones(client):
-    tid = _add(client, cycle_days=1, is_cyclic=1).json()["task_id"]
+def test_done_cyclic_end_clones(client):
+    # end 周期(recurrence_days=1)完成,克隆出下一个实例
+    tid = _add(client, recurrence_days=1).json()["task_id"]
     r = client.post(f"/api/tasks/{tid}/done")
     assert r.json()["cyclic"] is True
-    # 原任务 done,克隆出一个新 active end 任务
     active = client.get("/api/tasks").json()["ends"]
     assert len(active) == 1 and active[0]["id"] != tid
 
@@ -76,6 +85,15 @@ def test_snooze_logs_push(client):
     assert client.post(f"/api/tasks/{tid}/snooze").json()["snoozed"]
     pushes = client.get(f"/api/tasks/{tid}/pushes").json()["pushes"]
     assert len(pushes) == 1 and pushes[0]["response"] == "snoozed"
+
+
+def test_overdue_end_auto_closed_on_list(client):
+    # deadline 已过 → GET /api/tasks 时自动 closed,不在 ends 列表
+    r = _add(client, deadline="2020-01-01 00:00")
+    tid = r.json()["task_id"]
+    ends = client.get("/api/tasks").json()["ends"]
+    assert all(t["id"] != tid for t in ends)
+    assert db.get_task(db.connect(), tid)["status"] == "closed"
 
 
 def test_write_on_missing_task_404(client):
