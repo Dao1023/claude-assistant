@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
-import { fetchTaskDetail, fetchTaskPushes } from '@/api/client'
+import { closeTask, doneTask, fetchTaskDetail, fetchTaskPushes, snoozeTask } from '@/api/client'
 import type { PushRecord, TaskDetail } from '@/types'
 
 interface Props {
@@ -16,11 +16,15 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
+  /** 任务被操作(完成/稍后/关闭)后,通知父组件刷新列表 */
+  changed: []
 }>()
 
 const detail = ref<TaskDetail | null>(null)
 const pushes = ref<PushRecord[]>([])
 const loading = ref(false)
+/** 动作按钮防重复点击 */
+const acting = ref(false)
 
 /** 过期哨兵值(engine.OVERDUE = 1e9)。超过即视为"已逾期"。 */
 const OVERDUE = 1e6
@@ -111,6 +115,41 @@ watch(
 function handleUpdate(value: boolean) {
   emit('update:modelValue', value)
 }
+
+/** 只有进行中的任务才显示动作按钮 */
+const isActive = computed(() => detail.value?.status === 'active')
+
+/** 执行动作:完成/稍后/关闭。成功后关抽屉 + 通知父组件刷新。 */
+async function act(action: 'done' | 'snooze' | 'close') {
+  if (!detail.value || acting.value) return
+
+  // 关闭是不可逆操作(周期任务不再克隆),先确认
+  if (action === 'close') {
+    try {
+      await ElMessageBox.confirm(
+        `确定关闭「${detail.value.title}」吗?关闭后不再提醒。`,
+        '关闭任务',
+        { confirmButtonText: '关闭', cancelButtonText: '取消', type: 'warning' },
+      )
+    } catch {
+      return // 用户取消
+    }
+  }
+
+  acting.value = true
+  try {
+    const fn = { done: doneTask, snooze: snoozeTask, close: closeTask }[action]
+    await fn(detail.value.id)
+    const msg = { done: '已完成', snooze: '已稍后', close: '已关闭' }[action]
+    ElMessage.success(action === 'done' && detail.value.is_cyclic ? `${msg},已生成下一个周期任务` : msg)
+    emit('update:modelValue', false) // 关抽屉
+    emit('changed')                  // 让父组件刷新列表
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '操作失败')
+  } finally {
+    acting.value = false
+  }
+}
 </script>
 
 <template>
@@ -169,6 +208,13 @@ function handleUpdate(value: boolean) {
             <dd class="note">{{ detail.note }}</dd>
           </div>
         </dl>
+
+        <!-- 动作按钮区(仅进行中的任务) -->
+        <div v-if="isActive" class="actions">
+          <el-button type="success" :loading="acting" @click="act('done')">完成</el-button>
+          <el-button :loading="acting" @click="act('snooze')">稍后</el-button>
+          <el-button type="danger" plain :loading="acting" @click="act('close')">关闭</el-button>
+        </div>
 
         <!-- 提醒记录区 -->
         <h3 class="section-title">提醒记录</h3>
@@ -279,6 +325,18 @@ function handleUpdate(value: boolean) {
   line-height: 1.6;
   white-space: nowrap;
   margin-right: 4px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f1f5;
+}
+.actions .el-button {
+  flex: 1;
+  margin-left: 0;
 }
 
 .section-title {

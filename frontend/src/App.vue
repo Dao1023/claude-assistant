@@ -95,7 +95,7 @@ onMounted(load)
       />
     </main>
 
-    <DetailDrawer v-model="drawerVisible" :task-id="activeTaskId" />
+    <DetailDrawer v-model="drawerVisible" :task-id="activeTaskId" @changed="load" />
   </div>
 </template>
 
