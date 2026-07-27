@@ -39,14 +39,14 @@ _STAGE_PREFIX = {"gentle": "提醒", "escalating": "催办", "crisis": "紧急"}
 def notify_task(task, stage):
     """任务推送:直接弹窗,不经过 inbox 文件(避免触发 watcher 连锁)。
 
-    点击后唤起 Claude Code,带上任务标题,便于用户 /resume 处理这个任务。
+    点击后只打开一个干净的 Claude Code 窗口(不塞对话),由用户自己 /resume 处理。
     """
     msg = f"[{_STAGE_PREFIX.get(stage, '提醒')}] {task['title']}"
     toast = Toast()
     toast.text_fields = [APP_NAME, msg]
 
     def on_activated(_):
-        launch_claude(f"处理任务:{task['title']}")
+        launch_claude()
 
     toast.on_activated = on_activated
     toaster.show_toast(toast)
