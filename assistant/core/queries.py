@@ -75,3 +75,45 @@ def dashboard_data(conn=None):
     if close:
         conn.close()
     return {"starts": starts, "ends": ends}
+
+
+def task_detail(tid, conn=None):
+    """单任务完整详情(含 schedule 字段 + tags + 当前 importance)。
+
+    返回 None 表示任务不存在。importance 按 drive 现算,过期 end 给 OVERDUE 大数。
+    """
+    close = conn is None
+    conn = conn or db.connect()
+    row = conn.execute(
+        "SELECT t.*, s.deadline, s.anchor, s.cycle_days FROM tasks t"
+        " JOIN schedule s ON s.task_id=t.id WHERE t.id=?",
+        (tid,)).fetchone()
+    if row is None:
+        if close:
+            conn.close()
+        return None
+    t = dict(row)
+    t["tags"] = _task_tags(conn, tid)
+    if t["drive"] == "end":
+        t["importance"] = engine.end_importance(t["deadline"])
+        t["countdown"] = _fmt_countdown(t["deadline"])
+    else:
+        t["importance"] = engine.start_importance(t["anchor"], t["cycle_days"])
+        t["days_since"] = _days_since(t["anchor"])
+    if close:
+        conn.close()
+    return t
+
+
+def task_pushes(tid, conn=None):
+    """该任务的提醒记录(push_log 倒序:最新在前)。"""
+    close = conn is None
+    conn = conn or db.connect()
+    rows = [dict(r) for r in conn.execute(
+        "SELECT pushed_at, stage, response FROM push_log"
+        " WHERE task_id=? ORDER BY pushed_at DESC, id DESC",
+        (tid,)).fetchall()]
+    if close:
+        conn.close()
+    return rows
+

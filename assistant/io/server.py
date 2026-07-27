@@ -11,7 +11,7 @@
 """
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -29,6 +29,25 @@ def create_app() -> FastAPI:
             data = queries.dashboard_data(conn)
             data["tags"] = queries.all_tags(conn)
             return data
+        finally:
+            conn.close()
+
+    @app.get("/api/tasks/{tid}")
+    def api_task_detail(tid: str):
+        conn = queries.db.connect()
+        try:
+            detail = queries.task_detail(tid, conn)
+            if detail is None:
+                raise HTTPException(status_code=404, detail="任务不存在")
+            return detail
+        finally:
+            conn.close()
+
+    @app.get("/api/tasks/{tid}/pushes")
+    def api_task_pushes(tid: str):
+        conn = queries.db.connect()
+        try:
+            return {"pushes": queries.task_pushes(tid, conn)}
         finally:
             conn.close()
 
