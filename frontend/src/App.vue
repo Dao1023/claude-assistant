@@ -53,7 +53,7 @@ const filteredEnds = computed(() => ends.value.filter((t) => matchTags(t.tags)))
 function startFooter(task: StartTask): string {
   if (task.days_since === null || task.days_since === undefined) return '还没做过'
   if (task.days_since <= 0) return '今天做过'
-  return `${task.days_since} 天没做了`
+  return `${task.days_since.toFixed(1)} 天没做了`
 }
 
 function endFooter(task: EndTask): string {
