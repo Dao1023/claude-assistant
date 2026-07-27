@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-import { closeTask, doneTask, fetchSnoozeOptions, fetchTaskDetail, fetchTaskPushes, snoozeTask } from '@/api/client'
+import { closeTask, doneTask, fetchSnoozeOptions, fetchTaskDetail, fetchTaskPushes, snoozeTask, unsnoozeTask } from '@/api/client'
 import type { PushRecord, SnoozeOption, TaskDetail } from '@/types'
 
 interface Props {
@@ -199,6 +199,22 @@ function pickPreset(ts: number) {
   const p = (n: number) => String(n).padStart(2, '0')
   doSnooze(`${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`)
 }
+
+/** 取消推迟:恢复正常催促,刷新详情 */
+async function doUnsnooze() {
+  if (!detail.value || acting.value) return
+  acting.value = true
+  try {
+    await unsnoozeTask(detail.value.id)
+    ElMessage.success('已取消推迟')
+    emit('changed')
+    await load(detail.value.id)   // 刷新详情,清掉"已推迟到 X"
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '操作失败')
+  } finally {
+    acting.value = false
+  }
+}
 </script>
 
 <template>
@@ -250,7 +266,12 @@ function pickPreset(ts: number) {
           </div>
           <div v-if="detail.snooze_until" class="meta-row">
             <dt>已推迟</dt>
-            <dd>到 {{ detail.snooze_until }}</dd>
+            <dd>
+              到 {{ detail.snooze_until }}
+              <el-button link type="primary" size="small" :loading="acting" @click="doUnsnooze">
+                取消推迟
+              </el-button>
+            </dd>
           </div>
           <div class="meta-row">
             <dt>创建时间</dt>

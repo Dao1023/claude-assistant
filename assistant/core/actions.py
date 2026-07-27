@@ -135,6 +135,13 @@ def do_snooze(conn, p):
     return {"task_id": tid, "snoozed": True, "until": until}
 
 
+def do_unsnooze(conn, p):
+    """清除推迟(恢复按正常节奏催)。"""
+    tid = p["task_id"]
+    db.set_snooze(conn, tid, None)
+    return {"task_id": tid, "unsnoozed": True}
+
+
 def snooze_options():
     """推迟预设选项:{key: (显示名, 到点的 Unix 秒)}。自定义由调用方传绝对 ts。
 

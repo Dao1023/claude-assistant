@@ -77,6 +77,14 @@ export async function fetchSnoozeOptions(): Promise<SnoozeOptionsResponse> {
   return (await res.json()) as SnoozeOptionsResponse
 }
 
+/** 清除推迟(恢复正常催促节奏)。 */
+export async function unsnoozeTask(id: string): Promise<void> {
+  const res = await fetch(`/api/tasks/${id}/snooze`, { method: 'DELETE' })
+  if (!res.ok) {
+    throw new Error(res.status === 404 ? '任务不存在' : `操作失败:${res.status} ${res.statusText}`)
+  }
+}
+
 /** 新增任务。成功返回 { task_id, title }。 */
 export async function addTask(payload: AddTaskPayload): Promise<{ task_id: string }> {
   const res = await fetch('/api/tasks', {
