@@ -52,9 +52,17 @@ def _task_tags(conn, tid):
 
 
 def all_tags(conn=None):
+    """返回有活跃任务的标签,按活跃任务数降序(同数按名字)。
+
+    空标签(只挂在 done/closed 任务上,或完全没任务)不返回——面板只看活跃的。
+    """
     close = conn is None
     conn = conn or db.connect()
-    rows = [r["name"] for r in conn.execute("SELECT name FROM tags ORDER BY name").fetchall()]
+    rows = [r["name"] for r in conn.execute(
+        "SELECT g.name AS name, COUNT(*) AS n FROM tags g"
+        " JOIN task_tags tt ON tt.tag_id = g.id"
+        " JOIN tasks t ON t.id = tt.task_id AND t.status = 'active'"
+        " GROUP BY g.id ORDER BY n DESC, g.name").fetchall()]
     if close:
         conn.close()
     return rows
