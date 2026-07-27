@@ -63,3 +63,26 @@ export interface PushRecord {
 export interface PushesResponse {
   pushes: PushRecord[]
 }
+
+/** 新增任务表单(POST /api/tasks)。drive 创建时定死。 */
+export interface AddTaskPayload {
+  title: string
+  drive: 'start' | 'end'
+  deadline?: string | null
+  anchor?: string | null
+  /** 设置即视为周期任务 */
+  cycle_days?: number | null
+  priority?: number
+  note?: string | null
+  tags?: string[]
+}
+
+/** 编辑任务表单(PUT /api/tasks/{id}),全部可选。 */
+export interface UpdateTaskPayload {
+  title?: string
+  note?: string | null
+  priority?: number
+  deadline?: string | null
+  anchor?: string | null
+  cycle_days?: number | null
+}

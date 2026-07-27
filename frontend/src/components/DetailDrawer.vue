@@ -18,6 +18,8 @@ const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   /** 任务被操作(完成/稍后/关闭)后,通知父组件刷新列表 */
   changed: []
+  /** 点"编辑":把当前任务详情交给父组件去开编辑表单 */
+  edit: [task: TaskDetail]
 }>()
 
 const detail = ref<TaskDetail | null>(null)
@@ -211,6 +213,7 @@ async function act(action: 'done' | 'snooze' | 'close') {
 
         <!-- 动作按钮区(仅进行中的任务) -->
         <div v-if="isActive" class="actions">
+          <el-button :loading="acting" @click="emit('edit', detail!)">编辑</el-button>
           <el-button type="success" :loading="acting" @click="act('done')">完成</el-button>
           <el-button :loading="acting" @click="act('snooze')">稍后</el-button>
           <el-button type="danger" plain :loading="acting" @click="act('close')">关闭</el-button>
