@@ -10,6 +10,10 @@
 [![uv](https://img.shields.io/badge/uv-managed-DE5FE9?logo=astral&logoColor=white)](https://docs.astral.sh/uv/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+<img src="docs/screenshot.png" alt="Claude Assistant 任务面板" width="900">
+
+*START 越久越重要 · DDL 越近越急 —— 两栏看尽所有该做的事*
+
 </div>
 
 ---
