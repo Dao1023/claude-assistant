@@ -16,11 +16,13 @@ CREATE TABLE tasks (
   is_cyclic   INTEGER NOT NULL DEFAULT 0,-- 是否周期任务(1/0)
   priority    INTEGER NOT NULL DEFAULT 3,-- 主观优先级 1-5
   status      TEXT NOT NULL DEFAULT 'active', -- active / done / closed
-  created     INTEGER NOT NULL           -- 创建时间,Unix 秒
+  created     INTEGER NOT NULL,          -- 创建时间,Unix 秒
+  snooze_until INTEGER                   -- 推迟到此时间(Unix 秒),NULL=未推迟
 );
 ```
 
 > **时间字段一律 Unix 秒级整数**(v0.5.0 起;旧字符串库用 `scripts/migrate_unix_time.py` 迁移)。
+> `snooze_until` 为 v0.7.0 新增(旧库用 `scripts/migrate_snooze.py` 加列)。
 > 前后端边界仍传字符串,由 `core/timeutil.py` 在出入口互转。
 
 ### 2. `schedule` —— 时间驱动表(与 tasks 一对一)
@@ -85,12 +87,13 @@ CREATE TABLE push_log (
 
 | 方法 + 路径 | 复用 | 说明 |
 |---|---|---|
-| `POST /api/tasks` | `do_add` | 新增任务。传 `cycle_days` 即视为周期任务 |
-| `PUT /api/tasks/{id}` | `do_update` | 改 title/note/priority/deadline/anchor/cycle_days |
+| `POST /api/tasks` | `do_add` | 新增任务。start 传 expected_days/is_cyclic,end 传 recurrence_days(天,转秒存) |
+| `PUT /api/tasks/{id}` | `do_update` | 改 title/note/priority/deadline/anchor/expected_days/recurrence_days/is_cyclic |
 | `POST /api/tasks/{id}/done` | `do_done` | 完成。周期任务自动克隆下一个 |
 | `POST /api/tasks/{id}/close` | `do_close` | 彻底关闭(不再催) |
-| `POST /api/tasks/{id}/snooze` | `do_snooze` | 稍后(push_log 记一条) |
-| `GET /api/tasks` | — | 面板数据(starts/ends/tags) |
+| `POST /api/tasks/{id}/snooze` | `do_snooze` | 推迟。可带 `until`(到点,缺省 1h) |
+| `GET /api/snooze-options` | `snooze_options` | 推迟预设(1h/3h/明天/下周) |
+| `GET /api/tasks` | — | 面板数据(starts/ends/tags;tags 按活跃数降序) |
 | `GET /api/tasks/{id}` | — | 单任务详情(404 若不存在) |
 | `GET /api/tasks/{id}/pushes` | — | 提醒记录(倒序) |
 
