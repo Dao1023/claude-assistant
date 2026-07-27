@@ -13,6 +13,10 @@ interface Props {
 
 const props = defineProps<Props>()
 
+const emit = defineEmits<{
+  select: []
+}>()
+
 /** 过期哨兵值(engine.OVERDUE = 1e9)。超过即视为"已逾期",不显示原始大数。 */
 const OVERDUE = 1e6
 
@@ -31,7 +35,7 @@ const importanceText = computed(() =>
 </script>
 
 <template>
-  <div class="task-card" :style="{ borderLeftColor: accent }">
+  <div class="task-card" :style="{ borderLeftColor: accent }" @click="emit('select')">
     <div class="flex items-start justify-between gap-3">
       <h3 class="task-title">{{ title }}</h3>
       <span class="imp-badge" :class="importanceClass">{{ importanceText }}</span>
@@ -53,6 +57,7 @@ const importanceText = computed(() =>
   border-left: 3px solid transparent;
   padding: 12px 14px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
   transition:
     box-shadow 0.15s ease,
     transform 0.15s ease;

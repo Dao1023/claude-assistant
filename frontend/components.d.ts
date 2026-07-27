@@ -11,10 +11,14 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    DetailDrawer: typeof import('./src/components/DetailDrawer.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCheckTag: typeof import('element-plus/es')['ElCheckTag']
+    ElDrawer: typeof import('element-plus/es')['ElDrawer']
     ElEmpty: typeof import('element-plus/es')['ElEmpty']
     ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
+    ElTimeline: typeof import('element-plus/es')['ElTimeline']
+    ElTimelineItem: typeof import('element-plus/es')['ElTimelineItem']
     TagFilter: typeof import('./src/components/TagFilter.vue')['default']
     TaskCard: typeof import('./src/components/TaskCard.vue')['default']
     TaskColumn: typeof import('./src/components/TaskColumn.vue')['default']

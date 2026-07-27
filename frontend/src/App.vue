@@ -7,12 +7,21 @@ import { fetchTasks } from '@/api/client'
 import type { EndTask, StartTask } from '@/types'
 import TagFilter from '@/components/TagFilter.vue'
 import TaskColumn from '@/components/TaskColumn.vue'
+import DetailDrawer from '@/components/DetailDrawer.vue'
 
 const starts = ref<StartTask[]>([])
 const ends = ref<EndTask[]>([])
 const allTags = ref<string[]>([])
 const selectedTags = ref<string[]>([])
 const loading = ref(false)
+
+const drawerVisible = ref(false)
+const activeTaskId = ref<string | null>(null)
+
+function openDetail(id: string) {
+  activeTaskId.value = id
+  drawerVisible.value = true
+}
 
 /** 勾选任一选中 tag 的任务才显示;不选则全部显示 */
 function matchTags(taskTags: string[]): boolean {
@@ -75,14 +84,18 @@ onMounted(load)
         accent="#5b9bd5"
         :tasks="filteredStarts"
         :footer-of="startFooter"
+        @select="openDetail"
       />
       <TaskColumn
         heading="DDL · 越近越急"
         accent="#e05252"
         :tasks="filteredEnds"
         :footer-of="endFooter"
+        @select="openDetail"
       />
     </main>
+
+    <DetailDrawer v-model="drawerVisible" :task-id="activeTaskId" />
   </div>
 </template>
 

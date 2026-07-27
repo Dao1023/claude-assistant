@@ -1,4 +1,4 @@
-<script setup lang="ts" generic="T extends { id: number; title: string; importance: number; tags: string[] }">
+<script setup lang="ts" generic="T extends { id: string; title: string; importance: number; tags: string[] }">
 import TaskCard from './TaskCard.vue'
 
 interface Props {
@@ -12,6 +12,10 @@ interface Props {
 }
 
 defineProps<Props>()
+
+const emit = defineEmits<{
+  select: [id: string]
+}>()
 </script>
 
 <template>
@@ -32,6 +36,7 @@ defineProps<Props>()
           :footer="footerOf(task)"
           :tags="task.tags"
           :accent="accent"
+          @select="emit('select', task.id)"
         />
       </div>
       <el-empty v-else description="暂无任务" :image-size="80" />
