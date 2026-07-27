@@ -4,7 +4,7 @@
 """
 from datetime import datetime
 
-from ..core import commands, db, engine
+from ..core import actions, db, engine
 from .launcher import launch_claude
 from .popup import show_task_card
 
@@ -49,7 +49,7 @@ def _make_callbacks(tid):
     """三个按钮的真实生命周期操作。"""
     def on_done():
         conn = db.connect()
-        commands.do_done(conn, {"task_id": tid})       # 周期任务自动克隆下一个
+        actions.do_done(conn, {"task_id": tid})       # 周期任务自动克隆下一个
         db.log_push(conn, tid, _now(), "done", response="done")
         conn.close()
 
