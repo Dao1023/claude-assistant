@@ -46,6 +46,8 @@ export interface TaskDetail {
   recurrence_days?: number | null
   /** 仅 start:完成后是否重置 */
   is_cyclic: number
+  /** 推迟到此时间(字符串),null=未推迟 */
+  snooze_until?: string | null
   priority: number
   status: string
   created: string
@@ -69,6 +71,19 @@ export interface PushRecord {
 /** GET /api/tasks/{id}/pushes 返回 */
 export interface PushesResponse {
   pushes: PushRecord[]
+}
+
+/** 一个推迟预设选项 */
+export interface SnoozeOption {
+  key: string
+  label: string
+  /** 到点的 Unix 秒 */
+  until: number
+}
+
+/** GET /api/snooze-options 返回 */
+export interface SnoozeOptionsResponse {
+  options: SnoozeOption[]
 }
 
 /** 新增任务表单(POST /api/tasks)。drive 创建时定死。 */

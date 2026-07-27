@@ -1,6 +1,7 @@
 import type {
   AddTaskPayload,
   PushesResponse,
+  SnoozeOptionsResponse,
   TaskDetail,
   TasksResponse,
   UpdateTaskPayload,
@@ -43,7 +44,7 @@ export async function fetchTaskPushes(id: string): Promise<PushesResponse> {
 }
 
 /** 任务动作(完成/稍后/关闭),统一走 POST /api/tasks/{id}/{action}。 */
-async function postAction(id: string, action: 'done' | 'snooze' | 'close'): Promise<void> {
+async function postAction(id: string, action: 'done' | 'close'): Promise<void> {
   const res = await fetch(`/api/tasks/${id}/${action}`, { method: 'POST' })
   if (!res.ok) {
     throw new Error(res.status === 404 ? '任务不存在' : `操作失败:${res.status} ${res.statusText}`)
@@ -52,10 +53,29 @@ async function postAction(id: string, action: 'done' | 'snooze' | 'close'): Prom
 
 /** 完成任务(周期任务自动克隆下一个)。 */
 export const doneTask = (id: string) => postAction(id, 'done')
-/** 稍后(记一条 push_log,冷却期内不催)。 */
-export const snoozeTask = (id: string) => postAction(id, 'snooze')
 /** 关闭任务(不再催,周期任务不再克隆)。 */
 export const closeTask = (id: string) => postAction(id, 'close')
+
+/** 推迟任务。until 为 'YYYY-MM-DD HH:MM' 字符串,缺省 1 小时。 */
+export async function snoozeTask(id: string, until?: string): Promise<void> {
+  const res = await fetch(`/api/tasks/${id}/snooze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(until ? { until } : {}),
+  })
+  if (!res.ok) {
+    throw new Error(res.status === 404 ? '任务不存在' : `操作失败:${res.status} ${res.statusText}`)
+  }
+}
+
+/** 拉取推迟预设选项(1h/3h/明天/下周)。 */
+export async function fetchSnoozeOptions(): Promise<SnoozeOptionsResponse> {
+  const res = await fetch('/api/snooze-options', { headers: { Accept: 'application/json' } })
+  if (!res.ok) {
+    throw new Error(`请求失败:${res.status} ${res.statusText}`)
+  }
+  return (await res.json()) as SnoozeOptionsResponse
+}
 
 /** 新增任务。成功返回 { task_id, title }。 */
 export async function addTask(payload: AddTaskPayload): Promise<{ task_id: string }> {

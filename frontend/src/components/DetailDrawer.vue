@@ -2,8 +2,8 @@
 import { computed, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-import { closeTask, doneTask, fetchTaskDetail, fetchTaskPushes, snoozeTask } from '@/api/client'
-import type { PushRecord, TaskDetail } from '@/types'
+import { closeTask, doneTask, fetchSnoozeOptions, fetchTaskDetail, fetchTaskPushes, snoozeTask } from '@/api/client'
+import type { PushRecord, SnoozeOption, TaskDetail } from '@/types'
 
 interface Props {
   /** 抽屉是否可见(v-model) */
@@ -138,9 +138,9 @@ async function act(action: 'done' | 'snooze' | 'close') {
 
   acting.value = true
   try {
-    const fn = { done: doneTask, snooze: snoozeTask, close: closeTask }[action]
+    const fn = { done: doneTask, close: closeTask }[action as 'done' | 'close']
     await fn(detail.value.id)
-    const msg = { done: '已完成', snooze: '已稍后', close: '已关闭' }[action]
+    const msg = { done: '已完成', close: '已关闭' }[action as 'done' | 'close']
     // 完成会克隆下一个的:start 周期(is_cyclic)或 end 周期(recurrence_days 非空)
     const d = detail.value
     const willClone =
@@ -154,6 +154,50 @@ async function act(action: 'done' | 'snooze' | 'close') {
   } finally {
     acting.value = false
   }
+}
+
+// ---------- 推迟(稍后) ----------
+
+/** 推迟选项弹窗状态 */
+const snoozeVisible = ref(false)
+const snoozeOptions = ref<SnoozeOption[]>([])
+/** 自定义推迟时间('YYYY-MM-DD HH:mm') */
+const customUntil = ref('')
+
+/** 打开推迟选择:拉预设选项 */
+async function openSnooze() {
+  snoozeVisible.value = true
+  customUntil.value = ''
+  try {
+    const res = await fetchSnoozeOptions()
+    snoozeOptions.value = res.options
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '加载推迟选项失败')
+  }
+}
+
+/** 执行推迟。until 为 'YYYY-MM-DD HH:mm' 字符串,缺省(空)按 1 小时。 */
+async function doSnooze(until?: string) {
+  if (!detail.value || acting.value) return
+  acting.value = true
+  try {
+    await snoozeTask(detail.value.id, until || undefined)
+    ElMessage.success('已推迟')
+    snoozeVisible.value = false
+    emit('update:modelValue', false)
+    emit('changed')
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '推迟失败')
+  } finally {
+    acting.value = false
+  }
+}
+
+/** 选预设:until 是 Unix 秒,转 'YYYY-MM-DD HH:mm' */
+function pickPreset(ts: number) {
+  const d = new Date(ts * 1000)
+  const p = (n: number) => String(n).padStart(2, '0')
+  doSnooze(`${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`)
 }
 </script>
 
@@ -204,6 +248,10 @@ async function act(action: 'done' | 'snooze' | 'close') {
             <dt>截止</dt>
             <dd>{{ detail.deadline }}</dd>
           </div>
+          <div v-if="detail.snooze_until" class="meta-row">
+            <dt>已推迟</dt>
+            <dd>到 {{ detail.snooze_until }}</dd>
+          </div>
           <div class="meta-row">
             <dt>创建时间</dt>
             <dd>{{ detail.created }}</dd>
@@ -218,9 +266,36 @@ async function act(action: 'done' | 'snooze' | 'close') {
         <div v-if="isActive" class="actions">
           <el-button :loading="acting" @click="emit('edit', detail!)">编辑</el-button>
           <el-button type="success" :loading="acting" @click="act('done')">完成</el-button>
-          <el-button :loading="acting" @click="act('snooze')">稍后</el-button>
+          <el-button :loading="acting" @click="openSnooze">稍后</el-button>
           <el-button type="danger" plain :loading="acting" @click="act('close')">关闭</el-button>
         </div>
+
+        <!-- 推迟时长选择弹窗 -->
+        <el-dialog v-model="snoozeVisible" title="推迟到什么时候" width="360px" append-to-body>
+          <div class="snooze-presets">
+            <el-button
+              v-for="opt in snoozeOptions"
+              :key="opt.key"
+              @click="pickPreset(opt.until)"
+            >
+              {{ opt.label }}
+            </el-button>
+          </div>
+          <el-divider content-position="left">或自定义</el-divider>
+          <el-date-picker
+            v-model="customUntil"
+            type="datetime"
+            value-format="YYYY-MM-DD HH:mm"
+            placeholder="选择推迟到的时间"
+            style="width: 100%"
+          />
+          <template #footer>
+            <el-button @click="snoozeVisible = false">取消</el-button>
+            <el-button type="primary" :disabled="!customUntil" :loading="acting" @click="doSnooze(customUntil)">
+              推迟
+            </el-button>
+          </template>
+        </el-dialog>
 
         <!-- 提醒记录区 -->
         <h3 class="section-title">提醒记录</h3>
@@ -339,6 +414,16 @@ async function act(action: 'done' | 'snooze' | 'close') {
   margin-top: 18px;
   padding-top: 14px;
   border-top: 1px solid #f0f1f5;
+}
+
+.snooze-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.snooze-presets .el-button {
+  margin-left: 0;
+  flex: 1 1 calc(50% - 8px);
 }
 .actions .el-button {
   flex: 1;
