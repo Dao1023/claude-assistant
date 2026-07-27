@@ -1,5 +1,4 @@
-"""测试:数据库、指令、重要性算法、推送逻辑。用临时 DB,不碰正式数据。"""
-import json
+"""测试:数据库、任务动作、重要性算法、推送逻辑。用临时 DB,不碰正式数据。"""
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -9,7 +8,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from assistant import config
-from assistant.core import commands, db, engine
+from assistant.core import actions, db, engine
 
 TODAY = datetime.now().date()
 
@@ -83,7 +82,7 @@ def test_start_normalized_by_cycle():
 # ---------- 数据库 + 指令 ----------
 
 def test_add_end_cyclic_task(conn):
-    r = commands.do_add(conn, {"title": "原神每日", "drive": "end", "is_cyclic": 1,
+    r = actions.do_add(conn, {"title": "原神每日", "drive": "end", "is_cyclic": 1,
                                "cycle_days": 1, "deadline": str(TODAY) + " 23:59",
                                "tags": ["genshin"]})
     assert "task_id" in r
@@ -91,7 +90,7 @@ def test_add_end_cyclic_task(conn):
 
 
 def test_add_task_tag_association(conn):
-    r = commands.do_add(conn, {"title": "原神每日", "drive": "end", "is_cyclic": 1,
+    r = actions.do_add(conn, {"title": "原神每日", "drive": "end", "is_cyclic": 1,
                                "cycle_days": 1, "deadline": str(TODAY) + " 23:59",
                                "tags": ["genshin"]})
     tid = r["task_id"]
@@ -102,56 +101,38 @@ def test_add_task_tag_association(conn):
 
 
 def test_done_cyclic_end_task_clones(conn):
-    r = commands.do_add(conn, {"title": "原神每日", "drive": "end", "is_cyclic": 1,
+    r = actions.do_add(conn, {"title": "原神每日", "drive": "end", "is_cyclic": 1,
                                "cycle_days": 1, "deadline": str(TODAY) + " 23:59",
                                "tags": ["genshin"]})
     tid = r["task_id"]
     before = len(db.list_active(conn, "end"))
-    r = commands.do_done(conn, {"task_id": tid})
+    r = actions.do_done(conn, {"task_id": tid})
     after = len(db.list_active(conn, "end"))
     assert after == before and r["cyclic"]
     assert db.get_task(conn, tid)["status"] == "done"
 
 
 def test_done_cyclic_start_task_resets_anchor(conn):
-    r = commands.do_add(conn, {"title": "看发小", "drive": "start", "is_cyclic": 1,
+    r = actions.do_add(conn, {"title": "看发小", "drive": "start", "is_cyclic": 1,
                                "cycle_days": 30, "anchor": "2026-06-01"})
-    commands.do_done(conn, {"task_id": r["task_id"]})
+    actions.do_done(conn, {"task_id": r["task_id"]})
     new = db.list_active(conn, "start")[0]
     assert new["anchor"] == str(TODAY)
 
 
 def test_query_filters_by_tag(conn):
-    commands.do_add(conn, {"title": "任务A", "drive": "end",
+    actions.do_add(conn, {"title": "任务A", "drive": "end",
                            "deadline": str(TODAY), "tags": ["公司"]})
-    commands.do_add(conn, {"title": "任务B", "drive": "end",
+    actions.do_add(conn, {"title": "任务B", "drive": "end",
                            "deadline": str(TODAY), "tags": ["genshin"]})
-    q = commands.do_query(conn, {"tag": "genshin"})
+    q = actions.do_query(conn, {"tag": "genshin"})
     assert len(q["tasks"]) == 1 and q["tasks"][0]["title"] == "任务B"
-
-
-# ---------- 指令文件处理 ----------
-
-def test_process_commands(tmp_path, monkeypatch):
-    monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
-    commands_file = tmp_path / "commands.json"
-    monkeypatch.setattr(config, "COMMANDS", commands_file)
-    commands_file.write_text(
-        '{"commands": [{"id":"c1","action":"add","status":"pending",'
-        '"payload":{"title":"测试任务","drive":"end","deadline":"%s"}}]}'
-        % (str(TODAY) + " 18:00"),
-        encoding="utf-8")
-    n = commands.process_commands()
-    assert n == 1
-    data = json.loads(commands_file.read_text(encoding="utf-8"))
-    assert data["commands"][0]["status"] == "processed"
-    assert "task_id" in data["commands"][0]["result"]
 
 
 # ---------- 推送统计 ----------
 
 def test_push_stats(conn):
-    r = commands.do_add(conn, {"title": "推送测试", "drive": "end", "deadline": str(TODAY)})
+    r = actions.do_add(conn, {"title": "推送测试", "drive": "end", "deadline": str(TODAY)})
     tid = r["task_id"]
     db.log_push(conn, tid, "2026-07-27 10:00", "gentle")
     db.log_push(conn, tid, "2026-07-27 12:00", "escalating")

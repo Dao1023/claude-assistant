@@ -8,9 +8,10 @@ Claude Assistant - 常驻主动提醒助理
 依赖单向 main → app → io → core → config,无环。
 
 每轮调度:
-1. 处理 commands.json 新指令(add/done/update/... → SQLite)
-2. 处理 inbox.json 提醒(V1 通道)
-3. 跑 pusher:按重要性挑任务,弹催办小卡(写 push_log)
+1. 处理 inbox.json 提醒(V1 通道)
+2. 跑 pusher:按重要性挑任务,弹催办小卡(写 push_log)
+
+任务增删改查走 HTTP 接口(io/server.py → core/actions.py),不再有 commands.json。
 """
 import threading
 import time
@@ -18,7 +19,7 @@ import time
 from assistant.app.scheduler import tick as inbox_tick
 from assistant.app.tray import run_tray
 from assistant.config import POLL_INTERVAL
-from assistant.core import commands, db
+from assistant.core import db
 from assistant.io.launcher import _ensure_server, open_panel
 from assistant.io.notifier import clear_all
 from assistant.io.popup import start_ui
@@ -34,7 +35,6 @@ def tick():
         return                            # 上一轮没跑完,跳过本次
     try:
         db.init_db()
-        commands.process_commands()   # 新指令 → SQLite
         inbox_tick()                  # V1 inbox 提醒
         tick_push()                   # SQLite 任务推送(弹小卡)
     finally:

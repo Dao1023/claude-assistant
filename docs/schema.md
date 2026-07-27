@@ -71,45 +71,33 @@ CREATE TABLE push_log (
 
 > 任务的"当前推送状态"(被推几次、当前档位)由 push_log **算出**,不冗余存储,保证数据只有一份。
 
-## 二、指令格式(Claude Code → APP)
+## 二、操作接口(Claude Code / 前端 → APP)
 
-Claude Code 把用户自然语言翻译成指令,写到 `commands.json`,APP 监听解析后操作 SQLite,回写结果。
+任务的增删改查走 **HTTP 接口**(`io/server.py`,FastAPI),底层统一复用 `core/actions.py` 的业务逻辑。早期曾用 `commands.json` 文件信箱传话,有了 HTTP 接口后已删除——现在是同步实时调用,不再异步轮询。
 
-```json
-{
-  "commands": [
-    {
-      "id": "uuid",
-      "action": "add",
-      "payload": {
-        "title": "每周打周本",
-        "drive": "end",
-        "is_cyclic": 1,
-        "cycle_days": 7,
-        "priority": 3,
-        "tags": ["genshin"]
-      },
-      "status": "pending",
-      "result": null
-    }
-  ]
-}
-```
+接口文档由 FastAPI 自动生成:`/api/docs`(Swagger UI)与 `/api/openapi.json`,AI 可直接拉取了解全部端点。
 
-- `action`: `add` / `done` / `update` / `close` / `snooze` / `query`
-- `status`: APP 处理后改 `processed`,query 的答案写进 `result`。
-- APP 监听 `commands.json` 变更(watchdog),逐条执行,回写。
+| 方法 + 路径 | 复用 | 说明 |
+|---|---|---|
+| `POST /api/tasks` | `do_add` | 新增任务。传 `cycle_days` 即视为周期任务 |
+| `PUT /api/tasks/{id}` | `do_update` | 改 title/note/priority/deadline/anchor/cycle_days |
+| `POST /api/tasks/{id}/done` | `do_done` | 完成。周期任务自动克隆下一个 |
+| `POST /api/tasks/{id}/close` | `do_close` | 彻底关闭(不再催) |
+| `POST /api/tasks/{id}/snooze` | `do_snooze` | 稍后(push_log 记一条) |
+| `GET /api/tasks` | — | 面板数据(starts/ends/tags) |
+| `GET /api/tasks/{id}` | — | 单任务详情(404 若不存在) |
+| `GET /api/tasks/{id}/pushes` | — | 提醒记录(倒序) |
 
-### 各 action 的语义
+### 各动作的语义(与通道无关)
 
-| action | APP 行为 |
+| 动作 | APP 行为 |
 |---|---|
 | `add` | 插入 tasks + schedule + task_tags |
 | `done` | 标记完成。周期任务:克隆下一个(anchor/cycle 重置,push 计数清零);非周期:status→done |
 | `update` | 改字段(标题/优先级/deadline/周期/tag 等) |
 | `close` | 彻底关闭(周期任务不再克隆) |
-| `snooze` | 静音到某时刻(push_log 记一条,引擎暂停催它) |
-| `query` | 按条件查(tag/驱动/重要性 Top N),结果写 result |
+| `snooze` | 静音(push_log 记一条,冷却期内引擎不催它) |
+| `query` | 按条件查(tag/驱动/重要性 Top N) |
 
 ## 三、关键查询(引擎高频用)
 
@@ -165,13 +153,17 @@ JOIN tags g ON g.id = tt.tag_id
 WHERE g.name = 'genshin';   -- 或 != 'genshin' 隐藏
 ```
 
-## 四、落地步骤(开发顺序)
+## 四、模块落位(现状)
 
-1. [ ] 建库脚本:按上述 DDL 建 5 张表(`assistant/db.py`)
-2. [ ] 指令解析:监听 commands.json,实现 add/done/update/close/snooze/query(`assistant/commands.py`)
-3. [ ] 重要性引擎:定时算 start/end 重要性,产出两个清单(`assistant/engine.py`)
-4. [ ] 推送生命周期:接 V1 的 notifier,按三档催促 + 节流,写 push_log(`assistant/pusher.py`)
-5. [ ] 周期克隆:done 时自动建下一个任务
-6. [ ] 与 V1 notifier/launcher/tray 打通
+已全部分层落地,依赖单向 `config → core → io → app → main` 无环:
 
-> 模块将新增 `db.py / commands.py / engine.py / pusher.py`,复用现有 `notifier.py / launcher.py / tray.py / watcher.py`。
+- `core/db.py` — 建库 + 连接 + 基础 CRUD(5 张表)
+- `core/actions.py` — 任务动作 add/done/update/close/snooze/query(纯业务,供 HTTP 与催办小卡复用)
+- `core/engine.py` — 重要性引擎:start `log(距上次/周期)`、end `-log(剩余)`,产出两个清单
+- `core/queries.py` — 面板数据加工(倒计时/距上次天数/log 值/tag)
+- `io/server.py` — FastAPI:查询 + 写接口,托管前端构建产物
+- `io/pusher.py` — 推送生命周期:三档催促 + 节流,弹催办小卡,写 push_log
+- `io/notifier.py / launcher.py / watcher.py`、`app/scheduler.py / tray.py` — 沿用 V1
+
+前端面板为独立 Vue3 工程(`frontend/`,Vite + Element Plus + Tailwind),经 `/api` 与本服务交互。
+

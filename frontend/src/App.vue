@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
+import { Plus, Refresh } from '@element-plus/icons-vue'
 
 import { fetchTasks } from '@/api/client'
-import type { EndTask, StartTask } from '@/types'
+import type { EndTask, StartTask, TaskDetail } from '@/types'
 import TagFilter from '@/components/TagFilter.vue'
 import TaskColumn from '@/components/TaskColumn.vue'
 import DetailDrawer from '@/components/DetailDrawer.vue'
+import TaskForm from '@/components/TaskForm.vue'
 
 const starts = ref<StartTask[]>([])
 const ends = ref<EndTask[]>([])
@@ -18,9 +19,26 @@ const loading = ref(false)
 const drawerVisible = ref(false)
 const activeTaskId = ref<string | null>(null)
 
+// 新增/编辑表单
+const formVisible = ref(false)
+const editingTask = ref<TaskDetail | null>(null)
+
 function openDetail(id: string) {
   activeTaskId.value = id
   drawerVisible.value = true
+}
+
+/** 打开新增表单(空白) */
+function openAdd() {
+  editingTask.value = null
+  formVisible.value = true
+}
+
+/** 从详情抽屉发起编辑:带上当前任务数据预填,关抽屉开表单 */
+function openEdit(task: TaskDetail) {
+  editingTask.value = task
+  drawerVisible.value = false
+  formVisible.value = true
 }
 
 /** 勾选任一选中 tag 的任务才显示;不选则全部显示 */
@@ -73,6 +91,15 @@ onMounted(load)
           title="刷新"
           @click="load"
         />
+        <el-button
+          class="add-btn"
+          type="primary"
+          size="small"
+          :icon="Plus"
+          @click="openAdd"
+        >
+          新增任务
+        </el-button>
       </div>
       <TagFilter v-model="selectedTags" :tags="allTags" />
     </header>
@@ -95,7 +122,8 @@ onMounted(load)
       />
     </main>
 
-    <DetailDrawer v-model="drawerVisible" :task-id="activeTaskId" />
+    <DetailDrawer v-model="drawerVisible" :task-id="activeTaskId" @changed="load" @edit="openEdit" />
+    <TaskForm v-model="formVisible" :task="editingTask" :all-tags="allTags" @saved="load" />
   </div>
 </template>
 
@@ -116,5 +144,9 @@ onMounted(load)
   font-weight: 700;
   color: #2c3e50;
   letter-spacing: 0.01em;
+}
+
+.add-btn {
+  margin-left: auto;
 }
 </style>

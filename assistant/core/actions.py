@@ -1,11 +1,10 @@
-"""指令解析:读 commands.json,执行 add/done/update/close/snooze/query,操作 SQLite。
+"""任务动作:任务的增/完成/改/关/稍后/查,操作 SQLite。
 
-属于 core 层:纯任务逻辑,不碰弹窗/唤起。文件读写经 config.COMMANDS。
+属于 core 层:纯任务逻辑,不碰弹窗/唤起/HTTP。
+调用方:HTTP 接口(io/server.py)、催办小卡(io/pusher.py)。
 """
-import json
 from datetime import datetime, timedelta
 
-from .. import config
 from . import db
 
 
@@ -17,20 +16,7 @@ def today():
     return datetime.now().strftime("%Y-%m-%d")
 
 
-# ---------- commands.json 读写 ----------
-
-def load_commands():
-    try:
-        return json.loads(config.COMMANDS.read_text(encoding="utf-8"))
-    except Exception:
-        return {"commands": []}
-
-
-def save_commands(data):
-    config.COMMANDS.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
-# ---------- 各 action ----------
+# ---------- 各动作 ----------
 
 def do_add(conn, p):
     anchor = p.get("anchor") or (today() if p.get("drive") == "start" else None)
@@ -123,32 +109,3 @@ def do_query(conn, p):
                     "deadline": r["deadline"], "anchor": r["anchor"],
                     "cycle_days": r["cycle_days"], "priority": r["priority"], "nag_count": n})
     return {"tasks": out}
-
-
-ACTIONS = {"add": do_add, "done": do_done, "update": do_update,
-           "close": do_close, "snooze": do_snooze, "query": do_query}
-
-
-def process_commands():
-    """处理所有 pending 指令,回写结果。返回处理数。"""
-    data = load_commands()
-    conn = db.connect()
-    db.init_db()
-    n = 0
-    for cmd in data["commands"]:
-        if cmd.get("status") != "pending":
-            continue
-        fn = ACTIONS.get(cmd["action"])
-        if not fn:
-            cmd["status"], cmd["result"] = "error", {"error": "unknown action"}
-            continue
-        try:
-            cmd["result"] = fn(conn, cmd.get("payload", {}))
-            cmd["status"] = "processed"
-            n += 1
-        except Exception as e:
-            cmd["status"], cmd["result"] = "error", {"error": str(e)}
-    conn.close()
-    if n:
-        save_commands(data)
-    return n
