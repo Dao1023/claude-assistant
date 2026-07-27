@@ -163,6 +163,16 @@ def create_app() -> FastAPI:
         return {"options": [{"key": k, "label": lbl, "until": ts}
                             for k, (lbl, ts) in actions.snooze_options().items()]}
 
+    @app.delete("/api/tasks/{tid}/snooze")
+    def api_unsnooze(tid: str):
+        """清除推迟,恢复正常催促节奏。"""
+        _require_task(tid)
+        conn = queries.db.connect()
+        try:
+            return actions.do_unsnooze(conn, {"task_id": tid})
+        finally:
+            conn.close()
+
     _mount_static(app)
     return app
 

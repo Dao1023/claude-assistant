@@ -87,6 +87,17 @@ def test_snooze_logs_push(client):
     assert len(pushes) == 1 and pushes[0]["response"] == "snoozed"
 
 
+def test_snooze_with_until_and_unsnooze(client):
+    tid = _add(client).json()["task_id"]
+    # 推迟到指定时间
+    r = client.post(f"/api/tasks/{tid}/snooze", json={"until": "2099-01-01 08:00"})
+    assert r.json()["snoozed"]
+    assert client.get(f"/api/tasks/{tid}").json()["snooze_until"] == "2099-01-01 08:00"
+    # 取消推迟
+    assert client.delete(f"/api/tasks/{tid}/snooze").json()["unsnoozed"]
+    assert client.get(f"/api/tasks/{tid}").json()["snooze_until"] is None
+
+
 def test_overdue_end_auto_closed_on_list(client):
     # deadline 已过 → GET /api/tasks 时自动 closed,不在 ends 列表
     r = _add(client, deadline="2020-01-01 00:00")
