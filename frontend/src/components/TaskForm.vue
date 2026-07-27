@@ -31,8 +31,12 @@ const form = reactive({
   drive: 'start' as 'start' | 'end',
   priority: 3,
   tags: [] as string[],
-  cyclic: false,
-  cycle_days: 7,
+  // start:预期间隔(天)+ 完成后是否重置(独立)
+  expected_days: 15 as number | null,
+  is_cyclic: false,
+  // end:重复间隔(天),空=非周期
+  recurring: false,
+  recurrence_days: 1 as number | null,
   anchor: '',
   deadline: '',
   note: '',
@@ -50,8 +54,10 @@ watch(
     form.drive = t?.drive ?? 'start'
     form.priority = t?.priority ?? 3
     form.tags = t ? [...t.tags] : []
-    form.cyclic = t ? Boolean(t.is_cyclic) : false
-    form.cycle_days = t?.cycle_days ?? 7
+    form.expected_days = t?.expected_days ?? 15
+    form.is_cyclic = t ? Boolean(t.is_cyclic) : false
+    form.recurring = t?.recurrence_days != null
+    form.recurrence_days = t?.recurrence_days ?? 1
     form.anchor = t?.anchor ?? ''
     form.deadline = t?.deadline ?? ''
     form.note = t?.note ?? ''
@@ -67,15 +73,23 @@ async function submit() {
   }
   saving.value = true
   try {
-    const cycleDays = form.cyclic ? form.cycle_days : null
+    // 按 drive 只带对应字段:start=expected_days+is_cyclic,end=recurrence_days
+    const driveFields = isStart.value
+      ? {
+          expected_days: form.expected_days || null,
+          is_cyclic: form.is_cyclic ? 1 : 0,
+          anchor: form.anchor || null,
+        }
+      : {
+          recurrence_days: form.recurring ? form.recurrence_days || null : null,
+          deadline: form.deadline || null,
+        }
     if (isEdit.value && props.task) {
       await updateTask(props.task.id, {
         title: form.title.trim(),
         priority: form.priority,
         note: form.note || null,
-        cycle_days: cycleDays,
-        // 按 drive 只提交对应的时间字段
-        ...(isStart.value ? { anchor: form.anchor || null } : { deadline: form.deadline || null }),
+        ...driveFields,
       })
       ElMessage.success('已保存')
     } else {
@@ -85,8 +99,7 @@ async function submit() {
         priority: form.priority,
         tags: form.tags,
         note: form.note || null,
-        cycle_days: cycleDays,
-        ...(isStart.value ? { anchor: form.anchor || null } : { deadline: form.deadline || null }),
+        ...driveFields,
       })
       ElMessage.success('已新增任务')
     }
@@ -124,36 +137,50 @@ function handleUpdate(value: boolean) {
         </el-radio-group>
       </el-form-item>
 
-      <!-- 按 drive 显隐对应时间字段 -->
-      <el-form-item v-if="isStart" label="锚点">
-        <el-date-picker
-          v-model="form.anchor"
-          type="date"
-          value-format="YYYY-MM-DD"
-          placeholder="上次做是哪天(缺省今天)"
-          style="width: 100%"
-        />
-      </el-form-item>
-      <el-form-item v-else label="截止">
-        <el-date-picker
-          v-model="form.deadline"
-          type="datetime"
-          value-format="YYYY-MM-DD HH:mm"
-          placeholder="截止时间"
-          style="width: 100%"
-        />
-      </el-form-item>
-
-      <el-form-item label="周期">
-        <div class="cycle-row">
-          <el-switch v-model="form.cyclic" />
-          <template v-if="form.cyclic">
-            <span class="cycle-text">每</span>
-            <el-input-number v-model="form.cycle_days" :min="1" :max="365" size="small" />
-            <span class="cycle-text">天重复</span>
-          </template>
-        </div>
-      </el-form-item>
+      <!-- 按 drive 显隐对应字段 -->
+      <template v-if="isStart">
+        <el-form-item label="锚点">
+          <el-date-picker
+            v-model="form.anchor"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="上次做是哪天(缺省今天)"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="预期间隔">
+          <div class="cycle-row">
+            <span class="cycle-text">约</span>
+            <el-input-number v-model="form.expected_days" :min="1" :max="365" size="small" />
+            <span class="cycle-text">天做一次</span>
+          </div>
+        </el-form-item>
+        <el-form-item label="完成后">
+          <el-switch v-model="form.is_cyclic" />
+          <span class="cycle-text" style="margin-left: 8px">重置一个(周期任务)</span>
+        </el-form-item>
+      </template>
+      <template v-else>
+        <el-form-item label="截止">
+          <el-date-picker
+            v-model="form.deadline"
+            type="datetime"
+            value-format="YYYY-MM-DD HH:mm"
+            placeholder="截止时间"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="重复">
+          <div class="cycle-row">
+            <el-switch v-model="form.recurring" />
+            <template v-if="form.recurring">
+              <span class="cycle-text">每</span>
+              <el-input-number v-model="form.recurrence_days" :min="1" :max="365" size="small" />
+              <span class="cycle-text">天重复</span>
+            </template>
+          </div>
+        </el-form-item>
+      </template>
 
       <el-form-item label="优先级">
         <el-input-number v-model="form.priority" :min="1" :max="5" />

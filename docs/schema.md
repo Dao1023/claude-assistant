@@ -25,21 +25,24 @@ CREATE TABLE tasks (
 
 ### 2. `schedule` —— 时间驱动表(与 tasks 一对一)
 
-start / end 的时间逻辑不同,拆出来,各填各的:
+start / end 的时间逻辑不同,**字段级拆分**,各填各的:
 
 ```sql
 CREATE TABLE schedule (
-  task_id     TEXT PRIMARY KEY REFERENCES tasks(id),
-  deadline    INTEGER,       -- end 驱动:截止时间,Unix 秒
-  anchor      INTEGER,       -- start 驱动:上次完成时间,Unix 秒(做完重置;新任务=now)
-  cycle_days  INTEGER        -- 周期天数。end 周期=原神每日1/周本7;
-                             -- start 周期="正常周期"(归一化分母,如体检365/看朋友30)
+  task_id             TEXT PRIMARY KEY REFERENCES tasks(id),
+  deadline            INTEGER,   -- end 驱动:截止时间,Unix 秒
+  anchor              INTEGER,   -- start 驱动:上次完成时间,Unix 秒(做完重置;新任务=now)
+  expected_duration   INTEGER,   -- start 驱动:预期间隔(重要性归一化分母),秒
+  recurrence_interval INTEGER    -- end 驱动:重复间隔,秒;NULL=非周期
 );
 ```
 
-> - **end + is_cyclic**:`cycle_days` 是过期后重建的间隔。
-> - **start**:`cycle_days` 是"正常周期",用于重要性归一化 `log(距上次/cycle_days)`。
-> - **end 非周期**:`cycle_days` 为 NULL,只填 `deadline`。
+> - **start**:`anchor` + `expected_duration` + `tasks.is_cyclic`(独立,不随 expected_duration 自动开)。
+>   重要性 `log((now-anchor)/expected_duration)`。
+> - **end**:`deadline` + `recurrence_interval`(空=非周期,不用 is_cyclic)。
+>   过了 deadline 即 closed(超时即结束);周期任务超时 closed 当前 + 克隆下一个(deadline 顺延 interval)。
+> - 间隔字段都存**秒**,与 now/anchor/deadline 同单位,公式无量纲不用换算。
+> - (v0.6.0 起;旧库 `cycle_days` 用 `scripts/migrate_split_fields.py` 按 drive 拆分转秒。)
 
 ### 3. `tags` —— 标签表
 
@@ -95,12 +98,16 @@ CREATE TABLE push_log (
 
 | 动作 | APP 行为 |
 |---|---|
-| `add` | 插入 tasks + schedule + task_tags |
-| `done` | 标记完成。周期任务:克隆下一个(anchor/cycle 重置,push 计数清零);非周期:status→done |
-| `update` | 改字段(标题/优先级/deadline/周期/tag 等) |
-| `close` | 彻底关闭(周期任务不再克隆) |
+| `add` | 插入 tasks + schedule + task_tags。start 填 anchor+expected_duration,end 填 deadline+recurrence_interval |
+| `done` | status→done(真完成)。周期任务克隆下一个:start 重置 anchor,end 顺延 deadline |
+| `update` | 改字段(标题/优先级/anchor/deadline/expected_duration/recurrence_interval/is_cyclic/tag 等)。延期=改 deadline |
+| `close` | 手动关闭(status→closed,周期任务不再克隆) |
+| **超时** | end 过 deadline 自动 closed(引擎/推送入口先跑 `close_overdue`);周期任务同时克隆下一个 |
 | `snooze` | 静音(push_log 记一条,冷却期内引擎不催它) |
 | `query` | 按条件查(tag/驱动/重要性 Top N) |
+
+> **生命周期三状态**:`active`(唯一会被催)/ `done`(真完成)/ `closed`(手动关闭或超时结束)。
+> done 与 closed 行为一致,保留两个是为统计成功率(done/(done+closed))。
 
 ## 三、关键查询(引擎高频用)
 
@@ -114,33 +121,31 @@ ORDER BY s.deadline ASC;
 
 **2. start 清单(SQL 只取数,重要性在 Python 算)**
 
-重要性公式放在 Python(engine)里算,不压进数据库——以后调底数、加权重、处理边界都不用改 SQL。SQL 只负责取 anchor / cycle_days:
+重要性公式放在 Python(engine)里算,不压进数据库——以后调底数、加权重、处理边界都不用改 SQL。SQL 只负责取 anchor / expected_duration(均秒):
 
 ```sql
-SELECT t.*, s.anchor, s.cycle_days
+SELECT t.*, s.anchor, s.expected_duration
 FROM tasks t
 JOIN schedule s ON s.task_id = t.id
 WHERE t.drive='start' AND t.status='active';
 ```
 
-Python 侧对每个任务算 `importance = log(距今天数 / cycle_days)` 后排序:
+Python 侧对每个任务算 `importance = log((now - anchor) / expected_duration)` 后排序(全部秒级,无量纲):
 
 ```python
 import math
-from datetime import date
 
-def start_importance(anchor: date, cycle_days: int, today: date) -> float:
-    elapsed = (today - anchor).days
-    if cycle_days <= 0:
+def start_importance(anchor, expected_duration, now):
+    if anchor is None or not expected_duration or expected_duration <= 0:
         return 0.0
-    x = elapsed / cycle_days
+    x = (now - anchor) / expected_duration
     if x <= 0:
-        return float("-inf")   # 还没到周期,不排上号
-    return math.log(x)          # x<1 自然得到负数,x=1 得 0,x>1 缓慢上升
+        x = 1e-4               # 刚做/刚建:有限负值,排最后但不崩 JSON(不用 -inf)
+    return math.log(x)          # x<1 自然得负,x=1 得 0,x>1 缓慢上升
 ```
 
-> **边界**:`x <= 0`(当天刚做/锚点在未来)返回 -inf,排到最后;`x < 1` 时 log 为负,天然排在 `x > 1` 之后——这正是"没到周期不急"的语义,无需特判。
-> **end 的重要性**同理在 Python 算:`-log(剩余天数)`,剩余 ≤ 0(已过期)返回一个很大固定值,表示"已错过,最高优先"。
+> **边界**:`x <= 0` 钳到 `1e-4` 给有限负数,而不是 `-inf`——`-inf` 无法 JSON 序列化(曾致面板 500),且按秒算后 `x` 几乎不恒为 0。
+> **end 的重要性**:`-log(剩余天数)`。过期任务**不会**到这里——它们在引擎/推送入口已被 `close_overdue` 置为 closed(超时即结束),无需 OVERDUE 哨兵。
 
 **3. 某任务的推送统计(算档位)**
 ```sql
@@ -161,10 +166,11 @@ WHERE g.name = 'genshin';   -- 或 != 'genshin' 隐藏
 已全部分层落地,依赖单向 `config → core → io → app → main` 无环:
 
 - `core/db.py` — 建库 + 连接 + 基础 CRUD(5 张表)
-- `core/actions.py` — 任务动作 add/done/update/close/snooze/query(纯业务,供 HTTP 与催办小卡复用)
-- `core/engine.py` — 重要性引擎:start `log(距上次/周期)`、end `-log(剩余)`,产出两个清单
-- `core/queries.py` — 面板数据加工(倒计时/距上次天数/log 值/tag)
-- `io/server.py` — FastAPI:查询 + 写接口,托管前端构建产物
+- `core/timeutil.py` — 时间转换中枢:内部 Unix 秒 int ↔ 边界字符串/天数互转
+- `core/actions.py` — 任务动作 add/done/update/close/snooze/query + **close_overdue(超时即关闭)**(纯业务,供 HTTP 与催办小卡复用)
+- `core/engine.py` — 重要性引擎:start `log((now-anchor)/expected_duration)`、end `-log(剩余)`,产出两个清单
+- `core/queries.py` — 面板数据加工(倒计时/距上次天数/秒→天数/tag)
+- `io/server.py` — FastAPI:查询 + 写接口,托管前端构建产物;查询入口跑 close_overdue
 - `io/pusher.py` — 推送生命周期:三档催促 + 节流,弹催办小卡,写 push_log
 - `io/notifier.py / launcher.py / watcher.py`、`app/scheduler.py / tray.py` — 沿用 V1
 

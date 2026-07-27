@@ -38,6 +38,13 @@ def _fmt_countdown(deadline):
     return f"还剩 {secs // 60} 分钟"
 
 
+def _secs_to_days(secs):
+    """内部秒 -> 前端天数。None -> None。"""
+    if secs is None:
+        return None
+    return round(int(secs) / SECONDS_PER_DAY, 2)
+
+
 def _task_tags(conn, tid):
     return [r["name"] for r in conn.execute(
         "SELECT g.name FROM tags g JOIN task_tags tt ON tt.tag_id=g.id WHERE tt.task_id=?",
@@ -68,12 +75,14 @@ def dashboard_data(conn=None):
                        "importance": t["importance"],
                        "anchor": to_date_str(t["anchor"]),
                        "days_since": _days_since(t["anchor"]),
+                       "expected_days": _secs_to_days(t.pop("expected_duration")),
                        "tags": _task_tags(conn, t["id"])})
     for t in ends_raw:
         ends.append({**t,
                      "importance": t["importance"],
                      "deadline": to_str(t["deadline"]),
                      "countdown": _fmt_countdown(t["deadline"]),
+                     "recurrence_days": _secs_to_days(t.pop("recurrence_interval")),
                      "tags": _task_tags(conn, t["id"])})
     if close:
         conn.close()
@@ -88,8 +97,8 @@ def task_detail(tid, conn=None):
     close = conn is None
     conn = conn or db.connect()
     row = conn.execute(
-        "SELECT t.*, s.deadline, s.anchor, s.cycle_days FROM tasks t"
-        " JOIN schedule s ON s.task_id=t.id WHERE t.id=?",
+        "SELECT t.*, s.deadline, s.anchor, s.expected_duration, s.recurrence_interval"
+        " FROM tasks t JOIN schedule s ON s.task_id=t.id WHERE t.id=?",
         (tid,)).fetchone()
     if row is None:
         if close:
@@ -102,10 +111,13 @@ def task_detail(tid, conn=None):
         t["importance"] = engine.end_importance(t["deadline"])
         t["countdown"] = _fmt_countdown(t["deadline"])
         t["deadline"] = to_str(t["deadline"])
+        # 秒 -> 天数,供前端显示/回填
+        t["recurrence_days"] = _secs_to_days(t.pop("recurrence_interval"))
     else:
-        t["importance"] = engine.start_importance(t["anchor"], t["cycle_days"])
+        t["importance"] = engine.start_importance(t["anchor"], t["expected_duration"])
         t["days_since"] = _days_since(t["anchor"])
         t["anchor"] = to_date_str(t["anchor"])
+        t["expected_days"] = _secs_to_days(t.pop("expected_duration"))
     t["created"] = created_str
     if close:
         conn.close()

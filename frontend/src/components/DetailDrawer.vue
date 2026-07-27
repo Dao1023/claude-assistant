@@ -28,32 +28,30 @@ const loading = ref(false)
 /** 动作按钮防重复点击 */
 const acting = ref(false)
 
-/** 过期哨兵值(engine.OVERDUE = 1e9)。超过即视为"已逾期"。 */
-const OVERDUE = 1e6
-
 /** 与 TaskCard 一致的重要性着色 */
 const importanceClass = computed(() => {
   const v = detail.value?.importance ?? 0
-  if (v >= OVERDUE || v >= 1.0) return 'imp-red'
+  if (v >= 1.0) return 'imp-red'
   if (v >= 0.3) return 'imp-orange'
   if (v >= 0) return 'imp-blue'
   return 'imp-gray'
 })
 
-const importanceText = computed(() => {
-  const v = detail.value?.importance ?? 0
-  return v >= OVERDUE ? '逾期' : v.toFixed(2)
-})
+const importanceText = computed(() => (detail.value?.importance ?? 0).toFixed(2))
 
 const driveText = computed(() => {
   if (!detail.value) return ''
   return detail.value.drive === 'start' ? 'START · 越久越重要' : 'DDL · 越近越急'
 })
 
+/** 周期间隔说明(start 预期 / end 重复) */
 const cycleText = computed(() => {
   const d = detail.value
-  if (!d || !d.is_cyclic) return null
-  return d.cycle_days ? `每 ${d.cycle_days} 天` : '周期任务'
+  if (!d) return null
+  if (d.drive === 'start') {
+    return d.expected_days ? `约每 ${d.expected_days} 天` : null
+  }
+  return d.recurrence_days ? `每 ${d.recurrence_days} 天重复` : null
 })
 
 const statusText = computed(() => {
@@ -143,7 +141,12 @@ async function act(action: 'done' | 'snooze' | 'close') {
     const fn = { done: doneTask, snooze: snoozeTask, close: closeTask }[action]
     await fn(detail.value.id)
     const msg = { done: '已完成', snooze: '已稍后', close: '已关闭' }[action]
-    ElMessage.success(action === 'done' && detail.value.is_cyclic ? `${msg},已生成下一个周期任务` : msg)
+    // 完成会克隆下一个的:start 周期(is_cyclic)或 end 周期(recurrence_days 非空)
+    const d = detail.value
+    const willClone =
+      action === 'done' &&
+      (d.drive === 'start' ? Boolean(d.is_cyclic) : d.recurrence_days != null)
+    ElMessage.success(willClone ? `${msg},已生成下一个周期任务` : msg)
     emit('update:modelValue', false) // 关抽屉
     emit('changed')                  // 让父组件刷新列表
   } catch (err) {

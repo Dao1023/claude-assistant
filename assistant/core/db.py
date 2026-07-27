@@ -21,10 +21,11 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 CREATE TABLE IF NOT EXISTS schedule (
-  task_id     TEXT PRIMARY KEY REFERENCES tasks(id),
-  deadline    INTEGER,                    -- end 驱动:截止,Unix 秒
-  anchor      INTEGER,                    -- start 驱动:上次完成,Unix 秒
-  cycle_days  INTEGER
+  task_id             TEXT PRIMARY KEY REFERENCES tasks(id),
+  deadline            INTEGER,   -- end 驱动:截止时间,Unix 秒
+  anchor              INTEGER,   -- start 驱动:上次完成时间,Unix 秒
+  expected_duration   INTEGER,   -- start 驱动:预期间隔(重要性归一化分母),秒
+  recurrence_interval INTEGER    -- end 驱动:重复间隔,秒;NULL=非周期
 );
 
 CREATE TABLE IF NOT EXISTS tags (
@@ -67,8 +68,12 @@ def new_id():
 # ---------- tasks ----------
 
 def add_task(conn, title, drive, is_cyclic=0, priority=3, note=None,
-             created=None, deadline=None, anchor=None, cycle_days=None, tags=()):
-    """插入任务 + schedule + tag 关联,返回 task id。"""
+             created=None, deadline=None, anchor=None,
+             expected_duration=None, recurrence_interval=None, tags=()):
+    """插入任务 + schedule + tag 关联,返回 task id。
+
+    start 驱动用 anchor + expected_duration;end 驱动用 deadline + recurrence_interval。
+    """
     tid = new_id()
     with conn:
         conn.execute(
@@ -77,8 +82,9 @@ def add_task(conn, title, drive, is_cyclic=0, priority=3, note=None,
             (tid, title, note, drive, is_cyclic, priority, created),
         )
         conn.execute(
-            "INSERT INTO schedule (task_id,deadline,anchor,cycle_days) VALUES (?,?,?,?)",
-            (tid, deadline, anchor, cycle_days),
+            "INSERT INTO schedule (task_id,deadline,anchor,expected_duration,recurrence_interval)"
+            " VALUES (?,?,?,?,?)",
+            (tid, deadline, anchor, expected_duration, recurrence_interval),
         )
         for name in tags:
             conn.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", (name,))
@@ -100,8 +106,8 @@ def set_status(conn, tid, status):
 
 
 def list_active(conn, drive=None):
-    sql = ("SELECT t.*, s.deadline, s.anchor, s.cycle_days FROM tasks t"
-           " JOIN schedule s ON s.task_id=t.id WHERE t.status='active'")
+    sql = ("SELECT t.*, s.deadline, s.anchor, s.expected_duration, s.recurrence_interval"
+           " FROM tasks t JOIN schedule s ON s.task_id=t.id WHERE t.status='active'")
     args = []
     if drive:
         sql += " AND t.drive=?"
