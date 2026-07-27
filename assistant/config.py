@@ -16,3 +16,8 @@ VAULT = r"C:\Obsidian"                       # 唤起时的工作目录(Obsidian
 
 APP_NAME = "Claude Assistant"
 POLL_INTERVAL = 30                           # 轮询间隔(秒)
+
+# WebUI 面板
+WEB_PORT = 5174                              # FastAPI 服务端口(面板 + /api)
+WEB_DIST = BASE / "frontend" / "dist"        # 前端构建产物(pnpm build 输出)
+
