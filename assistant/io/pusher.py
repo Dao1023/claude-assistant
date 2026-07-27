@@ -11,12 +11,13 @@ from .popup import show_task_card
 MAX_CONCURRENT = 3        # 同时最多催几个(节流)
 COOLDOWN_SEC = 3600       # 同一任务推送冷却(秒):距上次不足则跳过
 ESCALATE_NAGS = 3         # 被推几次后升级档位
+CRISIS_IMPORTANCE = 1.0   # end 重要性到此值(约剩 9 小时内)升级为 crisis
 
 
 def _stage(task, nag_count):
-    """根据任务与已推次数定档位。"""
+    """根据任务与已推次数定档位。end 临近截止升级为 crisis(过期任务已被关闭,不在此列)。"""
     if task["drive"] == "end":
-        if engine.end_importance(task["deadline"]) >= engine.OVERDUE:
+        if engine.end_importance(task["deadline"]) >= CRISIS_IMPORTANCE:
             return "crisis"
         if nag_count >= ESCALATE_NAGS:
             return "escalating"
@@ -61,6 +62,7 @@ def tick_push():
     """主入口:算重要性 → 挑 top N(冷却过滤)→ 弹小卡并记录。返回推送数。"""
     conn = db.connect()
     db.init_db()
+    actions.close_overdue(conn)            # 超时即关闭:过期 end 任务先落 closed
     ends, starts = engine.today_lists(conn)
     candidates = ends + starts           # end 优先,再 start(均已排序)
     tasks = []

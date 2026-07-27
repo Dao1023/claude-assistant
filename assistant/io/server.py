@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 
 from ..config import WEB_DIST
 from ..core import actions, queries
-from ..core.timeutil import to_ts
+from ..core.timeutil import SECONDS_PER_DAY, to_ts
 
 
 # ---------- 请求体模型(Pydantic 校验 + 自动文档) ----------
@@ -36,10 +36,11 @@ from ..core.timeutil import to_ts
 class AddTaskIn(BaseModel):
     title: str
     drive: str = Field(pattern="^(start|end)$")
-    deadline: Optional[str] = None      # end 驱动:'YYYY-MM-DD HH:MM'
-    anchor: Optional[str] = None        # start 驱动:'YYYY-MM-DD',缺省取今天
-    cycle_days: Optional[int] = None    # 周期天数;设置即视为周期任务
-    is_cyclic: int = 0
+    deadline: Optional[str] = None              # end 驱动:'YYYY-MM-DD HH:MM'
+    anchor: Optional[str] = None                # start 驱动:'YYYY-MM-DD',缺省取今天
+    expected_days: Optional[float] = None       # start 驱动:预期间隔(天),转秒存
+    recurrence_days: Optional[float] = None     # end 驱动:重复间隔(天),转秒存;空=非周期
+    is_cyclic: int = 0                          # 仅 start:完成后是否重置
     priority: int = 3
     note: Optional[str] = None
     tags: list[str] = []
@@ -51,7 +52,9 @@ class UpdateTaskIn(BaseModel):
     priority: Optional[int] = None
     deadline: Optional[str] = None
     anchor: Optional[str] = None
-    cycle_days: Optional[int] = None
+    expected_days: Optional[float] = None
+    recurrence_days: Optional[float] = None
+    is_cyclic: Optional[int] = None
 
 
 def create_app() -> FastAPI:
@@ -61,6 +64,7 @@ def create_app() -> FastAPI:
     def api_tasks():
         conn = queries.db.connect()
         try:
+            actions.close_overdue(conn)          # 超时即关闭:过期 end 任务先落 closed
             data = queries.dashboard_data(conn)
             data["tags"] = queries.all_tags(conn)
             return data
@@ -90,13 +94,12 @@ def create_app() -> FastAPI:
 
     @app.post("/api/tasks", status_code=201)
     def api_add(body: AddTaskIn):
-        # 传了 cycle_days 即视为周期任务(更直觉,不必显式传 is_cyclic)
         payload = body.model_dump()
-        if payload.get("cycle_days"):
-            payload["is_cyclic"] = 1
-        # 边界转换:前端传字符串,内部存 Unix int
+        # 边界转换:前端传字符串/天数,内部存 Unix int / 秒
         payload["deadline"] = to_ts(payload.get("deadline"))
         payload["anchor"] = to_ts(payload.get("anchor"))
+        payload["expected_duration"] = _days_to_secs(payload.pop("expected_days"))
+        payload["recurrence_interval"] = _days_to_secs(payload.pop("recurrence_days"))
         conn = queries.db.connect()
         try:
             return actions.do_add(conn, payload)
@@ -107,11 +110,15 @@ def create_app() -> FastAPI:
     def api_update(tid: str, body: UpdateTaskIn):
         _require_task(tid)
         payload = {k: v for k, v in body.model_dump().items() if v is not None}
-        # 边界转换:时间字段字符串 -> Unix int(仅在传了对应字段时)
+        # 边界转换:时间字段字符串 -> Unix int;天数字段 -> 秒(仅在传了对应字段时)
         if "deadline" in payload:
             payload["deadline"] = to_ts(payload["deadline"])
         if "anchor" in payload:
             payload["anchor"] = to_ts(payload["anchor"])
+        if "expected_days" in payload:
+            payload["expected_duration"] = _days_to_secs(payload.pop("expected_days"))
+        if "recurrence_days" in payload:
+            payload["recurrence_interval"] = _days_to_secs(payload.pop("recurrence_days"))
         conn = queries.db.connect()
         try:
             return actions.do_update(conn, {"task_id": tid, **payload})
@@ -147,6 +154,13 @@ def create_app() -> FastAPI:
 
     _mount_static(app)
     return app
+
+
+def _days_to_secs(days):
+    """前端传的「天数」-> 内部秒。None -> None。"""
+    if days is None:
+        return None
+    return int(days * SECONDS_PER_DAY)
 
 
 def _require_task(tid: str):
