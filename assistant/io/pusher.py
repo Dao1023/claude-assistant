@@ -1,10 +1,10 @@
 """推送生命周期:按重要性挑任务,三档催促 + 节流 + 冷却,弹催办小卡 + 写 push_log。
 
 属于 io 层:弹 tkinter 小卡(popup),按钮接生命周期(完成/稍后/找AI)。
+时间一律 Unix 秒级 int(core/timeutil.py)。
 """
-from datetime import datetime
-
 from ..core import actions, db, engine
+from ..core.timeutil import now_ts, to_str
 from .launcher import launch_claude
 from .popup import show_task_card
 
@@ -27,22 +27,15 @@ def _stage(task, nag_count):
 
 
 def _cooling_down(last_at):
-    """距上次推送不足冷却时间则返回 True。兼容 'YYYY-MM-DD HH:MM' 与 '...HH:MM:SS'。"""
+    """距上次推送不足冷却时间则返回 True。last_at 为 Unix 秒级 int(None 表示没推过)。"""
     if not last_at:
         return False
-    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
-        try:
-            last = datetime.strptime(last_at, fmt)
-            break
-        except ValueError:
-            continue
-    else:
-        return False
-    return (datetime.now() - last).total_seconds() < COOLDOWN_SEC
+    return (now_ts() - int(last_at)) < COOLDOWN_SEC
 
 
 def _now():
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    """写 push_log 用的当前 Unix 秒级时间戳。"""
+    return now_ts()
 
 
 def _make_callbacks(tid):
@@ -85,5 +78,5 @@ def tick_push():
     for task, stage in tasks:
         on_done, on_snooze, on_ai = _make_callbacks(task["id"])
         show_task_card(task, stage, on_done, on_snooze, on_ai)
-        print(f"[{_now()}] 弹小卡: [{stage}] {task['title']}")
+        print(f"[{to_str(_now())}] 弹小卡: [{stage}] {task['title']}")
     return len(tasks)

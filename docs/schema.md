@@ -16,9 +16,12 @@ CREATE TABLE tasks (
   is_cyclic   INTEGER NOT NULL DEFAULT 0,-- 是否周期任务(1/0)
   priority    INTEGER NOT NULL DEFAULT 3,-- 主观优先级 1-5
   status      TEXT NOT NULL DEFAULT 'active', -- active / done / closed
-  created     TEXT NOT NULL              -- 创建时间 ISO 格式
+  created     INTEGER NOT NULL           -- 创建时间,Unix 秒
 );
 ```
+
+> **时间字段一律 Unix 秒级整数**(v0.5.0 起;旧字符串库用 `scripts/migrate_unix_time.py` 迁移)。
+> 前后端边界仍传字符串,由 `core/timeutil.py` 在出入口互转。
 
 ### 2. `schedule` —— 时间驱动表(与 tasks 一对一)
 
@@ -27,8 +30,8 @@ start / end 的时间逻辑不同,拆出来,各填各的:
 ```sql
 CREATE TABLE schedule (
   task_id     TEXT PRIMARY KEY REFERENCES tasks(id),
-  deadline    TEXT,          -- end 驱动:截止时间
-  anchor      TEXT,          -- start 驱动:上次完成时间(做完重置;新任务=created)
+  deadline    INTEGER,       -- end 驱动:截止时间,Unix 秒
+  anchor      INTEGER,       -- start 驱动:上次完成时间,Unix 秒(做完重置;新任务=now)
   cycle_days  INTEGER        -- 周期天数。end 周期=原神每日1/周本7;
                              -- start 周期="正常周期"(归一化分母,如体检365/看朋友30)
 );
@@ -63,7 +66,7 @@ CREATE TABLE task_tags (
 CREATE TABLE push_log (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   task_id    TEXT REFERENCES tasks(id),
-  pushed_at  TEXT NOT NULL,        -- 什么时候推的
+  pushed_at  INTEGER NOT NULL,     -- 什么时候推的,Unix 秒
   stage      TEXT,                 -- gentle / escalating / crisis
   response   TEXT                  -- seen / clicked / ignored / done(本次响应)
 );
@@ -75,7 +78,7 @@ CREATE TABLE push_log (
 
 任务的增删改查走 **HTTP 接口**(`io/server.py`,FastAPI),底层统一复用 `core/actions.py` 的业务逻辑。早期曾用 `commands.json` 文件信箱传话,有了 HTTP 接口后已删除——现在是同步实时调用,不再异步轮询。
 
-接口文档由 FastAPI 自动生成:`/api/docs`(Swagger UI)与 `/api/openapi.json`,AI 可直接拉取了解全部端点。
+接口文档由 FastAPI 自动生成:`/docs`(Swagger UI)与 `/openapi.json`,AI 可直接拉取了解全部端点。
 
 | 方法 + 路径 | 复用 | 说明 |
 |---|---|---|

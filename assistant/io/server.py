@@ -14,7 +14,8 @@
 - POST   /api/tasks/{id}/close → 关闭(不再催)
 - POST   /api/tasks/{id}/snooze → 稍后(记 push_log)
 
-接口文档:FastAPI 自带 /api/docs(Swagger)与 /api/openapi.json,AI 可自查。
+接口文档:FastAPI 自带 /docs(Swagger)与 /openapi.json,AI 可自查。
+时间字段:前端传/收字符串,本层在出入口与内部 Unix int 互转(core/timeutil.py)。
 开发模式另起 `pnpm dev`(Vite 代理 /api);生产模式由本服务托管 frontend/dist。
 """
 from pathlib import Path
@@ -27,6 +28,7 @@ from pydantic import BaseModel, Field
 
 from ..config import WEB_DIST
 from ..core import actions, queries
+from ..core.timeutil import to_ts
 
 
 # ---------- 请求体模型(Pydantic 校验 + 自动文档) ----------
@@ -92,6 +94,9 @@ def create_app() -> FastAPI:
         payload = body.model_dump()
         if payload.get("cycle_days"):
             payload["is_cyclic"] = 1
+        # 边界转换:前端传字符串,内部存 Unix int
+        payload["deadline"] = to_ts(payload.get("deadline"))
+        payload["anchor"] = to_ts(payload.get("anchor"))
         conn = queries.db.connect()
         try:
             return actions.do_add(conn, payload)
@@ -102,6 +107,11 @@ def create_app() -> FastAPI:
     def api_update(tid: str, body: UpdateTaskIn):
         _require_task(tid)
         payload = {k: v for k, v in body.model_dump().items() if v is not None}
+        # 边界转换:时间字段字符串 -> Unix int(仅在传了对应字段时)
+        if "deadline" in payload:
+            payload["deadline"] = to_ts(payload["deadline"])
+        if "anchor" in payload:
+            payload["anchor"] = to_ts(payload["anchor"])
         conn = queries.db.connect()
         try:
             return actions.do_update(conn, {"task_id": tid, **payload})

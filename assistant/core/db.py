@@ -1,6 +1,7 @@
 """SQLite 数据库层:建表 + 连接 + 基础 CRUD。
 
-表结构见 docs/schema.md。所有时间用 ISO 字符串(YYYY-MM-DD 或 YYYY-MM-DD HH:MM)。
+表结构见 docs/schema.md。所有时间字段内部一律 Unix 秒级整数(INTEGER);
+边界字符串与 int 的互转在 core/timeutil.py,由 server/queries 在出入口处理。
 """
 import sqlite3
 import uuid
@@ -16,13 +17,13 @@ CREATE TABLE IF NOT EXISTS tasks (
   is_cyclic   INTEGER NOT NULL DEFAULT 0,
   priority    INTEGER NOT NULL DEFAULT 3,
   status      TEXT NOT NULL DEFAULT 'active',
-  created     TEXT NOT NULL
+  created     INTEGER NOT NULL            -- 创建时间,Unix 秒
 );
 
 CREATE TABLE IF NOT EXISTS schedule (
   task_id     TEXT PRIMARY KEY REFERENCES tasks(id),
-  deadline    TEXT,
-  anchor      TEXT,
+  deadline    INTEGER,                    -- end 驱动:截止,Unix 秒
+  anchor      INTEGER,                    -- start 驱动:上次完成,Unix 秒
   cycle_days  INTEGER
 );
 
@@ -40,7 +41,7 @@ CREATE TABLE IF NOT EXISTS task_tags (
 CREATE TABLE IF NOT EXISTS push_log (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   task_id    TEXT REFERENCES tasks(id),
-  pushed_at  TEXT NOT NULL,
+  pushed_at  INTEGER NOT NULL,      -- 推送时间,Unix 秒
   stage      TEXT,
   response   TEXT
 );
