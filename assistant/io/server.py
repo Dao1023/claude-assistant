@@ -57,6 +57,10 @@ class UpdateTaskIn(BaseModel):
     is_cyclic: Optional[int] = None
 
 
+class SnoozeIn(BaseModel):
+    until: Optional[str] = None        # 推迟到此时间('YYYY-MM-DD HH:MM'),缺省 1 小时
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="Claude Assistant")
 
@@ -144,13 +148,20 @@ def create_app() -> FastAPI:
             conn.close()
 
     @app.post("/api/tasks/{tid}/snooze")
-    def api_snooze(tid: str):
+    def api_snooze(tid: str, body: Optional[SnoozeIn] = None):
         _require_task(tid)
+        until = to_ts(body.until) if body and body.until else None
         conn = queries.db.connect()
         try:
-            return actions.do_snooze(conn, {"task_id": tid})
+            return actions.do_snooze(conn, {"task_id": tid, "until": until})
         finally:
             conn.close()
+
+    @app.get("/api/snooze-options")
+    def api_snooze_options():
+        """推迟预设选项,供前端「稍后」选择。"""
+        return {"options": [{"key": k, "label": lbl, "until": ts}
+                            for k, (lbl, ts) in actions.snooze_options().items()]}
 
     _mount_static(app)
     return app

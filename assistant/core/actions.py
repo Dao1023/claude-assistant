@@ -124,8 +124,40 @@ def do_close(conn, p):
 
 
 def do_snooze(conn, p):
-    db.log_push(conn, p["task_id"], now(), "snoozed", response="snoozed")
-    return {"task_id": p["task_id"], "snoozed": True}
+    """推迟任务。p 可带 until(Unix 秒,绝对时间点);缺省按 1 小时。
+
+    写 push_log + 记 tasks.snooze_until,冷却判断统一读 snooze_until(见 pusher)。
+    """
+    tid = p["task_id"]
+    until = p.get("until") or (now() + 3600)
+    db.set_snooze(conn, tid, until)
+    db.log_push(conn, tid, now(), "snoozed", response="snoozed")
+    return {"task_id": tid, "snoozed": True, "until": until}
+
+
+def snooze_options():
+    """推迟预设选项:{key: (显示名, 到点的 Unix 秒)}。自定义由调用方传绝对 ts。
+
+    - 1h / 3h:从 now 往后推
+    - tomorrow:次日 08:00
+    - next_week:下周一 08:00
+    """
+    from datetime import datetime, timedelta
+    t = now()
+    dt = datetime.fromtimestamp(t)
+
+    def at(d, hour=8):
+        return int(d.replace(hour=hour, minute=0, second=0, microsecond=0).timestamp())
+
+    tomorrow = dt + timedelta(days=1)
+    # 下周一:本周一 + 7 天
+    monday = dt - timedelta(days=dt.weekday()) + timedelta(days=7)
+    return {
+        "1h": ("1 小时后", t + 3600),
+        "3h": ("3 小时后", t + 3 * 3600),
+        "tomorrow": ("明天", at(tomorrow)),
+        "next_week": ("下周", at(monday)),
+    }
 
 
 def do_query(conn, p):

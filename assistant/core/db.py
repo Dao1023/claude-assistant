@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS tasks (
   is_cyclic   INTEGER NOT NULL DEFAULT 0,
   priority    INTEGER NOT NULL DEFAULT 3,
   status      TEXT NOT NULL DEFAULT 'active',
-  created     INTEGER NOT NULL            -- 创建时间,Unix 秒
+  created     INTEGER NOT NULL,           -- 创建时间,Unix 秒
+  snooze_until INTEGER                    -- 推迟到此时间(Unix 秒),NULL=未推迟
 );
 
 CREATE TABLE IF NOT EXISTS schedule (
@@ -103,6 +104,12 @@ def get_task(conn, tid):
 def set_status(conn, tid, status):
     with conn:
         conn.execute("UPDATE tasks SET status=? WHERE id=?", (status, tid))
+
+
+def set_snooze(conn, tid, until_ts):
+    """设置/清除任务的推迟时间(Unix 秒,None=清除)。"""
+    with conn:
+        conn.execute("UPDATE tasks SET snooze_until=? WHERE id=?", (until_ts, tid))
 
 
 def list_active(conn, drive=None):

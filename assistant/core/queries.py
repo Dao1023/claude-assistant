@@ -115,6 +115,7 @@ def task_detail(tid, conn=None):
     t = dict(row)
     t["tags"] = _task_tags(conn, tid)
     created_str = to_str(t["created"])
+    t["snooze_until"] = to_str(t.get("snooze_until"))
     if t["drive"] == "end":
         t["importance"] = engine.end_importance(t["deadline"])
         t["countdown"] = _fmt_countdown(t["deadline"])
