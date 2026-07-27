@@ -15,8 +15,12 @@ def make_icon():
     return img
 
 
-def run_tray(on_check, on_exit=None):
-    """启动托盘。on_check:点'立即检查';on_exit:退出前回调(如清理通知)。"""
+def run_tray(on_check, on_exit=None, on_open=None):
+    """启动托盘。
+
+    on_check:点"立即检查";on_exit:退出前回调(如清理通知);
+    on_open:打开 WebUI 面板(左键单击 = default 项)。
+    """
     icon = pystray.Icon("claude-assistant", make_icon(), APP_NAME)
 
     def _quit():
@@ -24,7 +28,11 @@ def run_tray(on_check, on_exit=None):
             on_exit()
         icon.stop()
 
+    # 左键单击触发 default 项(打开面板);菜单里也保留入口作退路
+    open_item = pystray.MenuItem("打开面板", lambda: on_open and on_open(),
+                                 default=True, visible=on_open is not None)
     icon.menu = pystray.Menu(
+        open_item,
         pystray.MenuItem("立即检查", lambda: on_check()),
         pystray.MenuItem("退出", _quit),
     )

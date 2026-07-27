@@ -1,7 +1,8 @@
-"""唤起 Claude Code"""
+"""唤起外部程序:Claude Code、WebUI 面板(chrome --app)。"""
 import subprocess
+import threading
 
-from ..config import CLAUDE_EXE, VAULT
+from ..config import CHROME_EXE, CLAUDE_EXE, VAULT, WEB_PORT
 
 
 def launch_claude(msg=None):
@@ -18,3 +19,33 @@ def launch_claude(msg=None):
         )
     except Exception as e:
         print("唤起失败:", e)
+
+
+# ---- WebUI 面板 ----
+
+_server_lock = threading.Lock()
+_server_started = False
+
+
+def _ensure_server():
+    """确保 FastAPI 面板服务在跑(幂等,只起一次,daemon 线程)。"""
+    global _server_started
+    with _server_lock:
+        if _server_started:
+            return
+        from .server import run           # 延迟 import,避免拖慢主程序启动
+        threading.Thread(target=run, args=(WEB_PORT,), daemon=True).start()
+        _server_started = True
+
+
+def open_panel():
+    """打开(或唤起)WebUI 面板:先确保服务在跑,再用 chrome --app 开独立窗口。
+
+    --app 模式:无地址栏、独立任务栏图标,像个原生小应用。
+    """
+    _ensure_server()
+    url = f"http://127.0.0.1:{WEB_PORT}/"
+    try:
+        subprocess.Popen([CHROME_EXE, f"--app={url}"])
+    except Exception as e:
+        print("打开面板失败:", e)

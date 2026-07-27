@@ -19,6 +19,7 @@ from assistant.app.scheduler import tick as inbox_tick
 from assistant.app.tray import run_tray
 from assistant.config import POLL_INTERVAL
 from assistant.core import commands, db
+from assistant.io.launcher import open_panel
 from assistant.io.popup import start_ui
 from assistant.io.pusher import tick_push
 from assistant.io.watcher import start_watcher
@@ -49,9 +50,11 @@ def main():
     db.init_db()
     start_watcher(on_change=tick)                           # 文件变了 → tick
     threading.Thread(target=scheduler_loop, daemon=True).start()
-    # 托盘放子线程(主线程让给 tkinter)
-    threading.Thread(target=lambda: run_tray(on_check=tick), daemon=True).start()
-    print("Claude Assistant 已启动(催办小卡 + 推送生命周期)…")
+    # 托盘放子线程(主线程让给 tkinter);左键单击 = 打开 WebUI 面板
+    threading.Thread(
+        target=lambda: run_tray(on_check=tick, on_open=open_panel),
+        daemon=True).start()
+    print("Claude Assistant 已启动(催办小卡 + 推送生命周期 + WebUI 面板)…")
     tick()                                   # 启动先跑一轮
     start_ui()                               # 主线程:tkinter 事件循环(阻塞)
 
