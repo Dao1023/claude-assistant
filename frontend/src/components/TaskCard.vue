@@ -17,21 +17,16 @@ const emit = defineEmits<{
   select: []
 }>()
 
-/** 过期哨兵值(engine.OVERDUE = 1e9)。超过即视为"已逾期",不显示原始大数。 */
-const OVERDUE = 1e6
-
-/** 按 importance 高低着色:逾期/>=1.0 红 / >=0.3 橙 / >=0 蓝 / 负 灰 */
+/** 按 importance 高低着色:>=1.0 红 / >=0.3 橙 / >=0 蓝 / 负 灰 */
 const importanceClass = computed(() => {
   const v = props.importance
-  if (v >= OVERDUE || v >= 1.0) return 'imp-red'
+  if (v >= 1.0) return 'imp-red'
   if (v >= 0.3) return 'imp-orange'
   if (v >= 0) return 'imp-blue'
   return 'imp-gray'
 })
 
-const importanceText = computed(() =>
-  props.importance >= OVERDUE ? '逾期' : props.importance.toFixed(2)
-)
+const importanceText = computed(() => props.importance.toFixed(2))
 </script>
 
 <template>

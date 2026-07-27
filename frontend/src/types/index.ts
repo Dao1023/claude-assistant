@@ -5,9 +5,10 @@ export interface StartTask {
   importance: number
   /** 距上次多少天 */
   days_since: number | null
+  /** 预期间隔(天),重要性归一化分母 */
+  expected_days?: number | null
   tags: string[]
   anchor?: string
-  cycle_days?: number
 }
 
 /** DDL 驱动任务(越近越急) */
@@ -15,8 +16,10 @@ export interface EndTask {
   id: string
   title: string
   importance: number
-  /** 人话倒计时,如 "还剩 4 小时" / "已过期" / "还剩 2 天" */
+  /** 人话倒计时,如 "还剩 4 小时" / "还剩 2 天" */
   countdown: string
+  /** 重复间隔(天),空=非周期 */
+  recurrence_days?: number | null
   tags: string[]
   deadline?: string
 }
@@ -37,7 +40,11 @@ export interface TaskDetail {
   drive: 'start' | 'end'
   deadline: string | null
   anchor: string | null
-  cycle_days: number | null
+  /** start:预期间隔(天) */
+  expected_days?: number | null
+  /** end:重复间隔(天),空=非周期 */
+  recurrence_days?: number | null
+  /** 仅 start:完成后是否重置 */
   is_cyclic: number
   priority: number
   status: string
@@ -70,8 +77,12 @@ export interface AddTaskPayload {
   drive: 'start' | 'end'
   deadline?: string | null
   anchor?: string | null
-  /** 设置即视为周期任务 */
-  cycle_days?: number | null
+  /** start:预期间隔(天) */
+  expected_days?: number | null
+  /** end:重复间隔(天),空=非周期 */
+  recurrence_days?: number | null
+  /** 仅 start:完成后是否重置 */
+  is_cyclic?: number
   priority?: number
   note?: string | null
   tags?: string[]
@@ -84,5 +95,7 @@ export interface UpdateTaskPayload {
   priority?: number
   deadline?: string | null
   anchor?: string | null
-  cycle_days?: number | null
+  expected_days?: number | null
+  recurrence_days?: number | null
+  is_cyclic?: number
 }
