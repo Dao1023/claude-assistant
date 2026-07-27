@@ -1,99 +1,111 @@
-# Claude Assistant(常驻主动提醒助理)
+<div align="center">
 
-> 一个常驻 Windows 托盘的小程序,是 Claude Code 的**外部助手/代理人**(哑终端,不思考)。
-> Claude Code 是大脑,它是手脚:盯着 Claude Code 下发的指令、到点弹窗提醒、一键唤起 Claude Code。
+# Claude Assistant
 
-## 为什么做这个
+**一个常驻托盘的「双驱动」任务助理 —— Claude Code 的手脚，不是你的又一个清单 App**
 
-- 和 Claude Code 对话能产生动力、理清思路,但窗口一关(它本质就是个 terminal/powershell),一切归零,之后很久想不起打开。
-- 需要一个**主动**的常驻助手:Claude Code 不在时,它替 Claude Code 把提醒推到我面前,并能一键把我拉回对话。
-- 定位:**助手,不是替代**。思考、记忆、对话全在 Claude Code;APP 只负责"盯信箱 + 弹窗 + 唤起"。
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.138-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Vue 3](https://img.shields.io/badge/Vue-3-4FC08D?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
+[![uv](https://img.shields.io/badge/uv-managed-DE5FE9?logo=astral&logoColor=white)](https://docs.astral.sh/uv/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## 核心功能(最小原型 V1)
+</div>
 
-1. **盯信箱**:监听信箱文件,发现 Claude Code 写入的新指令就读取。
-2. **到点弹窗**:按指令里的时间,弹系统通知提醒我。
-3. **唤起 Claude Code**:通知带"和 Claude 聊聊"入口,点了打开 Claude Code 并自动带一句话,接续对话。
-4. **回写状态**:把"已读/已点/已完成"写回信箱,供 Claude Code 随时查询。
+---
 
-## 架构与分工
+## 我们受够了任务管理
 
-```
-┌──────────────┐   ① 写指令到信箱(inbox.json)   ┌──────────────┐
-│  Claude Code │ ───────────────────────────────→ │  信箱文件     │
-│   (大脑)     │                                   │ inbox.json   │
-│              │ ←─────────────────────────────── │              │
-└──────────────┘   ④ 读状态(APP 回写)             └──────┬───────┘
-       ↑                                                  │ ② 监听
-       │ ③ 唤起(带开场白)                                ↓
-       │                                          ┌──────────────┐
-       └──────────────────────────────────────────│  常驻 APP    │
-              (子进程打开 claude code)              │  (哑终端)    │
-                                                  └──────┬───────┘
-                                                         │ 到点弹窗
-                                                         ↓
-                                                      提醒我
-```
+清单、日历、每日计划、四象限、GTD、看板……
 
-- **通信协议 = 信箱 JSON 文件**。这是唯一的接口契约,APP 用什么实现都行,Claude Code 只认文件。
-- 后续可加 HTTP(Claude Code 直接 POST 给 APP),V1 先用文件监听,最简单可靠。
+工具换了一个又一个，待办清单却越列越长，最后变成一份**再也不敢打开的忏悔录**。
 
-## 信箱协议(inbox.json)
+停下来想，它们真的不同吗？剥掉外壳，所有「要做的事」其实只有两种：
 
-```json
-{
-  "reminders": [
-    {
-      "id": "uuid",
-      "time": "2026-07-28 09:00",
-      "msg": "开虚拟机,昨天说好的",
-      "status": "pending",
-      "created_by": "claude",
-      "note": ""
-    }
-  ]
-}
-```
+- **越久越该做的** —— 体检、看朋友、体检报告躺在那 300 天了
+- **越近越急迫的** —— 周五要交的方案、今晚截止的报名
 
-- `status`: `pending`(待发)→ `notified`(已弹窗)→ `done`(已完成)/ `dismissed`(已忽略)
-- APP 监听文件新增/变更 → 到点弹窗 → 用户操作后回写 `status` 和 `note`
-- Claude Code 读这个文件即可知道每条提醒的状态
+就这两种。剩下的全是噪音。
 
-## 技术选型(V1)
+**Claude Assistant 透过现象看本质，把任务管理抽离成这两条最朴素的驱动**，然后让 AI 在后台替你盯着，到点把你拉回正轨。
 
-- **Python 3.13**(机器已有),快速出原型
-- `watchdog` —— 监听信箱文件变更
-- `win10toast` 或 `windows-toasts` —— 系统通知弹窗
-- `pystray` —— 系统托盘常驻
-- 唤起:`subprocess` 启动 `claude`(可带 prompt 参数)
+---
 
-## 目录规划
+## 两种驱动，两个公式
+
+| | START · 越久越重要 | DDL · 越近越急 |
+|---|---|---|
+| **什么事** | 没有硬截止，但拖不得 | 有明确 deadline |
+| **怎么催** | `log(距上次 / 周期)` | `-log(剩余)` |
+| **例子** | 体检、回访、看爸妈 | 方案、报名、还书 |
+
+重要性不是拍脑袋的优先级数字，而是**时间自然发酵出来的**。拖得越久、离得越近，它就越无法忽视。
+
+周期任务做完自动续上下一个；催办分三档（提醒 → 催办 → 紧急），越不理越上头。
+
+---
+
+## 它不是替你思考，是替 Claude 盯着你
 
 ```
-claude-assistant/
-├── README.md           ← 本文件(规划)
-├── inbox.json          ← 信箱(Claude Code 与 APP 的接口)
-├── assistant/
-│   ├── main.py         ← 入口,常驻+托盘
-│   ├── watcher.py      ← 监听信箱
-│   ├── notifier.py     ← 弹窗
-│   └── launcher.py     ← 唤起 Claude Code
-└── requirements.txt
+你  ──► Claude Code(大脑:决策、记忆、对话)
+                    │
+                    │  到点该催了
+                    ▼
+         Claude Assistant(哑终端:记任务、算重要性、弹窗、把你拉回对话)
 ```
 
-## 开发步骤(V1)
+- Claude Code 一关窗口就「失忆」，它在托盘里**替你记住那些该做的事**。
+- 到点弹窗，一键**把你拽回和 Claude 的对话**，思路无缝接上。
+- 它从不替你做决定——**助手，不是替代**。
 
-1. [ ] 定义并写死 `inbox.json` 的 schema,放一条示例提醒
-2. [ ] `watcher.py`:watchdog 监听 inbox.json,加载 pending 提醒
-3. [ ] `notifier.py`:到点弹系统通知
-4. [ ] `launcher.py`:通知点击后唤起 claude code 并带开场白
-5. [ ] 回写 status 到 inbox.json
-6. [ ] `main.py`:串起来 + pystray 托盘常驻
-7. [ ] Claude Code 侧:约定一套"我往 inbox.json 写提醒"的操作方式
+---
 
-## 后续版本(V2+ 再谈)
+## 一览
 
-- HTTP 服务(Claude Code 直接 POST,不用等文件监听)
-- 托盘菜单:查看待办、暂停提醒、手动唤起
-- 定时对账:每天固定时间主动汇总 Daily / 翻出被遗忘的事
-- 体验升级:若觉得 Python 原型太简陋,换 Electron / C# 重写
+- 🧠 **双驱动任务模型** —— 看透所有任务管理工具的本质
+- 📮 **HTTP 接口** —— FastAPI 自动文档，AI / 前端 / 弹窗共用一套逻辑
+- 🖥️ **WebUI 面板** —— Vue 3 + Element Plus，增删改查、提醒记录、标签筛选
+- 📌 **托盘常驻** —— 无窗口后台运行，左键开面板，端口被占自动顺延
+- 🔁 **周期任务** —— 完成自动克隆，生活琐事永不漏
+- 📊 **推送生命周期** —— 三档催促 + 节流 + 完整流水，催你有分寸
+
+---
+
+## 快速开始
+
+**环境**：[uv](https://docs.astral.sh/uv/) + Node / pnpm
+
+```bash
+uv sync                                # 后端依赖(锁版本,走阿里源)
+cd frontend && pnpm install && pnpm build && cd ..   # 构建前端
+启动.bat                               # 常驻 + 托盘,无窗口运行
+```
+
+托盘左键 → 打开面板。开发模式：`uv run python main.py` + `cd frontend && pnpm dev`。
+
+> AI 接入：读 `data/panel_port` 拿端口 → 拉 `/openapi.json` 自查接口 → 直接用。绝不直接碰数据库。
+
+---
+
+## 深入了解
+
+设计、推导与实现细节都在文档里：
+
+- [需求](docs/requirements.md) · [架构](docs/architecture.md) · [任务模型](docs/task-system.md)
+- [推送生命周期](docs/lifecycle.md) · [表结构与接口](docs/schema.md) · [存储选型](docs/storage.md)
+
+---
+
+<div align="center">
+
+## 来一起玩
+
+🚧 **项目仍在活跃开发中** —— 雏形已跑通，想法还很多。
+
+如果你也受够了臃肿的任务管理，认同「回归本质」这套思路，
+**欢迎体验、提 Issue、丢 PR，或者只是来聊聊。**
+
+⭐ 如果它戳中了你，点个 Star 就是最大的鼓励。
+
+</div>
