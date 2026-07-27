@@ -65,6 +65,29 @@ def test_update_task(client):
     assert d["title"] == "改名了" and d["priority"] == 5
 
 
+def test_update_task_tags(client):
+    # 编辑改 tag:去掉「学习」换「科研」,应生效(覆盖式)
+    tid = _add(client, tags=["学习"]).json()["task_id"]
+    assert client.get(f"/api/tasks/{tid}").json()["tags"] == ["学习"]
+    r = client.put(f"/api/tasks/{tid}", json={"tags": ["科研"]})
+    assert r.status_code == 200 and r.json()["updated"]
+    assert client.get(f"/api/tasks/{tid}").json()["tags"] == ["科研"]
+
+
+def test_update_task_clear_tags(client):
+    # 传空数组 → 清空所有 tag
+    tid = _add(client, tags=["学习", "科研"]).json()["task_id"]
+    client.put(f"/api/tasks/{tid}", json={"tags": []})
+    assert client.get(f"/api/tasks/{tid}").json()["tags"] == []
+
+
+def test_update_task_without_tags_keeps_existing(client):
+    # 不传 tags 字段 → 不动现有 tag(只改 title)
+    tid = _add(client, tags=["学习"]).json()["task_id"]
+    client.put(f"/api/tasks/{tid}", json={"title": "只改名"})
+    assert client.get(f"/api/tasks/{tid}").json()["tags"] == ["学习"]
+
+
 def test_done_cyclic_end_clones(client):
     # end 周期(recurrence_days=1)完成,克隆出下一个实例
     tid = _add(client, recurrence_days=1).json()["task_id"]

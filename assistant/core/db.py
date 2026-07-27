@@ -101,6 +101,19 @@ def get_task(conn, tid):
     return conn.execute("SELECT * FROM tasks WHERE id=?", (tid,)).fetchone()
 
 
+def set_tags(conn, tid, tags):
+    """覆盖式更新任务的 tag 关联:先清旧关联,再按给定名字逐个挂接(自动建缺失 tag)。"""
+    with conn:
+        conn.execute("DELETE FROM task_tags WHERE task_id=?", (tid,))
+        for name in tags:
+            conn.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", (name,))
+            row = conn.execute("SELECT id FROM tags WHERE name=?", (name,)).fetchone()
+            conn.execute(
+                "INSERT OR IGNORE INTO task_tags (task_id,tag_id) VALUES (?,?)",
+                (tid, row["id"]),
+            )
+
+
 def set_status(conn, tid, status):
     with conn:
         conn.execute("UPDATE tasks SET status=? WHERE id=?", (status, tid))

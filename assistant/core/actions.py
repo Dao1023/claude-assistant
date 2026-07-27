@@ -115,6 +115,9 @@ def do_update(conn, p):
     if sfields:
         with conn:
             conn.execute(f"UPDATE schedule SET {', '.join(sfields)} WHERE task_id=?", (*sargs, tid))
+    # tags:传了就覆盖式更新(空数组=清空);不传则不动现有 tag
+    if "tags" in p:
+        db.set_tags(conn, tid, p["tags"])
     return {"task_id": tid, "updated": True}
 
 

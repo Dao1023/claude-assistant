@@ -55,6 +55,7 @@ class UpdateTaskIn(BaseModel):
     expected_days: Optional[float] = None
     recurrence_days: Optional[float] = None
     is_cyclic: Optional[int] = None
+    tags: Optional[list[str]] = None            # 传了则覆盖式更新;空数组=清空;不传=不动
 
 
 class SnoozeIn(BaseModel):
