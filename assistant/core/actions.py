@@ -5,7 +5,7 @@
 时间字段内部一律 Unix 秒级 int(见 core/timeutil.py)。
 """
 from . import db
-from .timeutil import SECONDS_PER_DAY, now_ts
+from .timeutil import now_ts
 
 
 def now():
@@ -16,51 +16,87 @@ def now():
 # ---------- 各动作 ----------
 
 def do_add(conn, p):
-    anchor = p.get("anchor") or (now() if p.get("drive") == "start" else None)
+    """新增任务。start 用 anchor + expected_duration;end 用 deadline + recurrence_interval。"""
+    drive = p["drive"]
+    anchor = p.get("anchor") or (now() if drive == "start" else None)
     tid = db.add_task(
         conn,
         title=p["title"],
-        drive=p["drive"],
-        is_cyclic=p.get("is_cyclic", 0),
+        drive=drive,
+        is_cyclic=p.get("is_cyclic", 0) if drive == "start" else 0,
         priority=p.get("priority", 3),
         note=p.get("note"),
         created=now(),
-        deadline=p.get("deadline"),
+        deadline=p.get("deadline") if drive == "end" else None,
         anchor=anchor,
-        cycle_days=p.get("cycle_days"),
+        expected_duration=p.get("expected_duration") if drive == "start" else None,
+        recurrence_interval=p.get("recurrence_interval") if drive == "end" else None,
         tags=p.get("tags", []),
     )
     return {"task_id": tid, "title": p["title"]}
 
 
+def _clone_next(conn, task, *, anchor=None, deadline=None):
+    """克隆一个周期的下一个实例(继承 title/drive/priority/note/tags)。"""
+    sched = conn.execute("SELECT * FROM schedule WHERE task_id=?", (task["id"],)).fetchone()
+    db.add_task(
+        conn, task["title"], task["drive"],
+        is_cyclic=task["is_cyclic"] if task["drive"] == "start" else 0,
+        priority=task["priority"], note=task["note"], created=now(),
+        deadline=deadline, anchor=anchor,
+        expected_duration=sched["expected_duration"],
+        recurrence_interval=sched["recurrence_interval"],
+        tags=[r["name"] for r in conn.execute(
+            "SELECT g.name FROM tags g JOIN task_tags tt ON tt.tag_id=g.id"
+            " WHERE tt.task_id=?", (task["id"],)).fetchall()],
+    )
+
+
 def do_done(conn, p):
-    """完成任务。周期任务克隆下一个(anchor/deadline 顺延,推送计数随新任务自然清零)。"""
+    """完成任务(-> done)。周期任务克隆下一个实例。"""
     tid = p["task_id"]
     task = db.get_task(conn, tid)
     if not task:
         return {"error": "task not found"}
-    if task["is_cyclic"]:
-        sched = conn.execute("SELECT * FROM schedule WHERE task_id=?", (tid,)).fetchone()
-        cycle = sched["cycle_days"] or 1
-        # 克隆下一个:start 锚点重置为现在;end 截止按周期秒级顺延(精确保留时分,如"次日 4:00")
-        new_anchor = now() if task["drive"] == "start" else None
-        new_deadline = None
-        if task["drive"] == "end" and sched["deadline"] is not None:
-            new_deadline = int(sched["deadline"]) + cycle * SECONDS_PER_DAY
-        db.add_task(conn, task["title"], task["drive"], is_cyclic=1,
-                    priority=task["priority"], note=task["note"], created=now(),
-                    deadline=new_deadline, anchor=new_anchor, cycle_days=cycle,
-                    tags=[r["name"] for r in conn.execute(
-                        "SELECT g.name FROM tags g JOIN task_tags tt ON tt.tag_id=g.id"
-                        " WHERE tt.task_id=?", (tid,)).fetchall()])
+    if task["drive"] == "start" and task["is_cyclic"]:
+        # start 周期:锚点重置为 now
+        _clone_next(conn, task, anchor=now())
+    elif task["drive"] == "end":
+        sched = conn.execute("SELECT recurrence_interval FROM schedule WHERE task_id=?",
+                             (tid,)).fetchone()
+        if sched["recurrence_interval"]:
+            # end 周期:deadline 顺延一个间隔(精确保留时分)
+            _clone_next(conn, task,
+                        deadline=int(task["deadline"]) + int(sched["recurrence_interval"]))
     db.set_status(conn, tid, "done")
     return {"task_id": tid, "done": True, "cyclic": bool(task["is_cyclic"])}
+
+
+def close_overdue(conn, now=None):
+    """把已过 deadline 的 active end 任务置为 closed(超时即结束)。
+
+    周期任务(recurrence_interval 非空)同时克隆下一个实例(deadline 顺延)。
+    返回关闭的任务数。在 engine.today_lists / pusher.tick_push 入口调用。
+    """
+    now = now if now is not None else now_ts()
+    rows = conn.execute(
+        "SELECT t.*, s.deadline, s.recurrence_interval FROM tasks t"
+        " JOIN schedule s ON s.task_id=t.id"
+        " WHERE t.drive='end' AND t.status='active'"
+        " AND s.deadline IS NOT NULL AND s.deadline < ?",
+        (now,)).fetchall()
+    for task in rows:
+        if task["recurrence_interval"]:
+            _clone_next(conn, task,
+                        deadline=int(task["deadline"]) + int(task["recurrence_interval"]))
+        db.set_status(conn, task["id"], "closed")
+    return len(rows)
 
 
 def do_update(conn, p):
     tid = p["task_id"]
     fields, args = [], []
-    for k in ("title", "note", "priority"):
+    for k in ("title", "note", "priority", "is_cyclic"):
         if k in p:
             fields.append(f"{k}=?")
             args.append(p[k])
@@ -69,7 +105,7 @@ def do_update(conn, p):
             conn.execute(f"UPDATE tasks SET {', '.join(fields)} WHERE id=?", (*args, tid))
     # schedule 字段
     sfields, sargs = [], []
-    for k in ("deadline", "anchor", "cycle_days"):
+    for k in ("deadline", "anchor", "expected_duration", "recurrence_interval"):
         if k in p:
             sfields.append(f"{k}=?")
             sargs.append(p[k])
@@ -103,5 +139,7 @@ def do_query(conn, p):
         n, last = db.push_stats(conn, r["id"])
         out.append({"id": r["id"], "title": r["title"], "drive": r["drive"],
                     "deadline": r["deadline"], "anchor": r["anchor"],
-                    "cycle_days": r["cycle_days"], "priority": r["priority"], "nag_count": n})
+                    "expected_duration": r["expected_duration"],
+                    "recurrence_interval": r["recurrence_interval"],
+                    "priority": r["priority"], "nag_count": n})
     return {"tasks": out}
