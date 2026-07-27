@@ -60,6 +60,7 @@ def today_lists(conn=None):
                 "deadline": r["deadline"], "anchor": r["anchor"],
                 "expected_duration": r["expected_duration"],
                 "recurrence_interval": r["recurrence_interval"],
+                "snooze_until": r["snooze_until"],
                 "priority": r["priority"]}
         if r["drive"] == "end":
             item["importance"] = end_importance(r["deadline"])

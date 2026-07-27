@@ -8,10 +8,35 @@ from ..core.timeutil import now_ts, to_str
 from .launcher import launch_claude
 from .popup import show_task_card
 
-MAX_CONCURRENT = 3        # 同时最多催几个(节流)
-COOLDOWN_SEC = 3600       # 同一任务推送冷却(秒):距上次不足则跳过
+MAX_CONCURRENT = 1        # 一次只催一个(最该做的那个),end 优先
+COOLDOWN_RATIO = 0.25     # 冷却 = 任务间隔 × 此系数(原神每日 6h、论文 15d≈3.7d)
+COOLDOWN_FALLBACK = 3600  # 任务无间隔字段时的兜底冷却(秒)
 ESCALATE_NAGS = 3         # 被推几次后升级档位
 CRISIS_IMPORTANCE = 1.0   # end 重要性到此值(约剩 9 小时内)升级为 crisis
+
+
+def _task_interval(task):
+    """任务的间隔(秒):start 用 expected_duration,end 用 recurrence_interval。无则 None。"""
+    if task["drive"] == "start":
+        return task.get("expected_duration")
+    return task.get("recurrence_interval")
+
+
+def _cooling_down(task, last_at, now=None):
+    """任务是否在冷却(不该催)。snooze_until 优先;否则按 间隔×1/4。
+
+    - snooze_until 非空且 now < snooze_until → 推迟未到点,冷却。
+    - 否则:距上次推送不足「间隔×1/4」→ 冷却。无间隔字段兜底 COOLDOWN_FALLBACK。
+    """
+    now = now if now is not None else now_ts()
+    snooze_until = task.get("snooze_until")
+    if snooze_until and now < int(snooze_until):
+        return True
+    if not last_at:
+        return False
+    interval = _task_interval(task) or COOLDOWN_FALLBACK
+    cooldown = max(int(interval * COOLDOWN_RATIO), 60)   # 至少 60s,避免高频狂弹
+    return (now - int(last_at)) < cooldown
 
 
 def _stage(task, nag_count):
@@ -27,29 +52,22 @@ def _stage(task, nag_count):
     return "gentle"
 
 
-def _cooling_down(last_at):
-    """距上次推送不足冷却时间则返回 True。last_at 为 Unix 秒级 int(None 表示没推过)。"""
-    if not last_at:
-        return False
-    return (now_ts() - int(last_at)) < COOLDOWN_SEC
-
-
 def _now():
     """写 push_log 用的当前 Unix 秒级时间戳。"""
     return now_ts()
 
 
 def _make_callbacks(tid):
-    """三个按钮的真实生命周期操作。"""
+    """三个按钮的真实生命周期操作。on_snooze 接受可选 until(秒)。"""
     def on_done():
         conn = db.connect()
         actions.do_done(conn, {"task_id": tid})       # 周期任务自动克隆下一个
         db.log_push(conn, tid, _now(), "done", response="done")
         conn.close()
 
-    def on_snooze():
+    def on_snooze(until=None):
         conn = db.connect()
-        db.log_push(conn, tid, _now(), "snoozed", response="snoozed")
+        actions.do_snooze(conn, {"task_id": tid, "until": until})
         conn.close()
 
     def on_ai():
@@ -59,26 +77,29 @@ def _make_callbacks(tid):
 
 
 def tick_push():
-    """主入口:算重要性 → 挑 top N(冷却过滤)→ 弹小卡并记录。返回推送数。"""
+    """主入口:挑一个最该催的(先 end 后 start,取第一个不冷却的)→ 弹小卡并记录。"""
     conn = db.connect()
     db.init_db()
     actions.close_overdue(conn)            # 超时即关闭:过期 end 任务先落 closed
     ends, starts = engine.today_lists(conn)
-    candidates = ends + starts           # end 优先,再 start(均已排序)
-    tasks = []
-    for task in candidates:
-        if len(tasks) >= MAX_CONCURRENT:
-            break
+    now = _now()
+
+    picked = None
+    for task in ends + starts:             # end 优先,再 start(均已排序)
         nag_count, last_at = db.push_stats(conn, task["id"])
-        if _cooling_down(last_at):       # 冷却期内跳过
+        if _cooling_down(task, last_at, now):
             continue
-        stage = _stage(task, nag_count)
-        db.log_push(conn, task["id"], _now(), stage)
-        tasks.append((task, stage))
+        picked = (task, _stage(task, nag_count))
+        break                              # 一次一个
+    if picked:
+        task, stage = picked
+        db.log_push(conn, task["id"], now, stage)
     conn.close()
 
-    for task, stage in tasks:
+    if picked:
+        task, stage = picked
         on_done, on_snooze, on_ai = _make_callbacks(task["id"])
         show_task_card(task, stage, on_done, on_snooze, on_ai)
-        print(f"[{to_str(_now())}] 弹小卡: [{stage}] {task['title']}")
-    return len(tasks)
+        print(f"[{to_str(now)}] 弹小卡: [{stage}] {task['title']}")
+        return 1
+    return 0
