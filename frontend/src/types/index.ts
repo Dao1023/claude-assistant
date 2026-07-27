@@ -113,4 +113,6 @@ export interface UpdateTaskPayload {
   expected_days?: number | null
   recurrence_days?: number | null
   is_cyclic?: number
+  /** 传了则覆盖式更新;空数组=清空;不传=不动 */
+  tags?: string[]
 }

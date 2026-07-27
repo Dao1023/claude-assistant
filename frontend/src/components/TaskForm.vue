@@ -88,6 +88,7 @@ async function submit() {
       await updateTask(props.task.id, {
         title: form.title.trim(),
         priority: form.priority,
+        tags: form.tags,
         note: form.note || null,
         ...driveFields,
       })
