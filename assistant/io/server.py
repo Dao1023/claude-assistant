@@ -77,6 +77,13 @@ app = create_app()
 
 
 def run(port: int):
-    """供托盘/主程序在子线程里拉起服务。"""
+    """供托盘/主程序在子线程里拉起服务。
+
+    log_config=None:不让 uvicorn 初始化自己的日志 formatter。
+    否则在 pythonw(无窗口,sys.stdout 为 None)下,
+    uvicorn 的 formatter 调 sys.stdout.isatty() 会直接 AttributeError 崩掉,
+    服务永远起不来。面板服务本就不需要 uvicorn 的访问日志。
+    """
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    uvicorn.run(app, host="127.0.0.1", port=port,
+                log_level="warning", log_config=None)

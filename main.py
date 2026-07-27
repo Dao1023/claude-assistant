@@ -19,7 +19,7 @@ from assistant.app.scheduler import tick as inbox_tick
 from assistant.app.tray import run_tray
 from assistant.config import POLL_INTERVAL
 from assistant.core import commands, db
-from assistant.io.launcher import open_panel
+from assistant.io.launcher import _ensure_server, open_panel
 from assistant.io.notifier import clear_all
 from assistant.io.popup import start_ui
 from assistant.io.pusher import tick_push
@@ -51,6 +51,8 @@ def main():
     db.init_db()
     start_watcher(on_change=tick)                           # 文件变了 → tick
     threading.Thread(target=scheduler_loop, daemon=True).start()
+    # 面板服务随启动常驻预热:点托盘时服务已热,open_panel 秒开、零等待、无竞态
+    _ensure_server()
     # 托盘放子线程(主线程让给 tkinter);左键单击 = 打开 WebUI 面板
     # 退出时 clear_all 清掉 Windows 通知队列残留,避免"进程没了通知还在"
     threading.Thread(

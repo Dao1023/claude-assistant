@@ -27,25 +27,67 @@ def launch_claude(msg=None):
 
 _server_lock = threading.Lock()
 _server_started = False
+_actual_port = None                     # 服务实际监听的端口(自动顺延后的结果)
+
+MAX_PORT_TRIES = 20                     # 从 WEB_PORT 起最多往后顺延几个口
+
+
+def _port_free(port):
+    """该端口能否绑定(空闲)?用 bind 探测——比 connect 准,
+    能识别代理软件那种 'Bound 但未 Listen' 的占用(如 mihomo)。"""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 0)
+            s.bind(("127.0.0.1", port))
+        return True
+    except OSError:
+        return False
+
+
+def _pick_port():
+    """从 WEB_PORT 起找第一个空闲端口。全被占则抛错。"""
+    for i in range(MAX_PORT_TRIES):
+        port = WEB_PORT + i
+        if _port_free(port):
+            return port
+    raise RuntimeError(f"{WEB_PORT}~{WEB_PORT + MAX_PORT_TRIES - 1} 端口全被占用")
+
+
+def _server_thread(port):
+    """服务线程入口:包住 run,把异常写进日志文件。
+
+    关键:子线程异常默认被静默吞掉(pythonw 无窗口更看不见),
+    必须落盘才能诊断"服务为什么没起来"。
+    """
+    import traceback
+    from ..config import DATA
+    log = DATA / "panel_server.log"
+    try:
+        from .server import run
+        run(port)
+    except Exception:
+        log.write_text(traceback.format_exc(), encoding="utf-8")
 
 
 def _ensure_server():
-    """确保 FastAPI 面板服务在跑(幂等,只起一次,daemon 线程)。"""
-    global _server_started
+    """确保 FastAPI 面板服务在跑(幂等,只起一次,daemon 线程)。
+
+    端口自动顺延:从 WEB_PORT 起找第一个空闲口,记录到 _actual_port,
+    供 open_panel 用同一个号开浏览器,保证服务与面板永远对上。
+    """
+    global _server_started, _actual_port
     with _server_lock:
         if _server_started:
             return
-        from .server import run           # 延迟 import,避免拖慢主程序启动
-        threading.Thread(target=run, args=(WEB_PORT,), daemon=True).start()
+        _actual_port = _pick_port()
+        threading.Thread(target=_server_thread, args=(_actual_port,), daemon=True).start()
         _server_started = True
+        if _actual_port != WEB_PORT:
+            print(f"端口 {WEB_PORT} 被占,面板服务顺延到 {_actual_port}")
 
 
 def _wait_port(port, timeout=5.0):
-    """轮询等待端口真正可连接(服务 listen 完成),超时返回 False。
-
-    关键:uvicorn 在子线程里 start 后,绑定端口是异步的,需要一点时间。
-    不等待就开浏览器,会撞上"服务还没 listen → 连接被拒绝"。
-    """
+    """轮询等待端口真正可连接(服务 listen 完成),超时返回 False。"""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
@@ -57,14 +99,13 @@ def _wait_port(port, timeout=5.0):
 
 
 def open_panel():
-    """打开(或唤起)WebUI 面板:先确保服务就绪,再用 chrome --app 开独立窗口。
+    """打开(或唤起)WebUI 面板:起服务后立刻用 chrome --app 开独立窗口。
 
     --app 模式:无地址栏、独立任务栏图标,像个原生小应用。
+    不阻塞等服务就绪——浏览器先开,服务 1 秒左右起来,刷新一下即可(体感秒开)。
     """
     _ensure_server()
-    url = f"http://127.0.0.1:{WEB_PORT}/"
-    if not _wait_port(WEB_PORT):
-        print(f"面板服务 {WEB_PORT} 等待超时,仍尝试打开(可能需手动刷新)")
+    url = f"http://127.0.0.1:{_actual_port}/"
     try:
         subprocess.Popen([CHROME_EXE, f"--app={url}"])
     except Exception as e:
