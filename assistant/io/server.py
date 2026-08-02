@@ -27,7 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from ..config import WEB_DIST
-from ..core import actions, queries
+from ..core import actions, funnel, queries
 from ..core import settings as settings_mod
 from ..core.timeutil import SECONDS_PER_DAY, to_ts
 
@@ -210,6 +210,45 @@ def create_app() -> FastAPI:
         if errors:
             raise HTTPException(status_code=400, detail=errors)
         return {"editable": settings_mod.all()}
+
+    # ---------- 通知漏斗(规则页实时数据) ----------
+
+    @app.get("/api/funnel")
+    def api_funnel():
+        """每层当前筛掉了哪些任务(只算不弹,无副作用)。
+
+        复用 pusher.pick 的同一条过滤管线,保证页面看到的 = 真实推送会发生。
+        返回每层:说明 + 被挡任务数 + 被挡任务列表 + 该层配置项当前值。
+        """
+        from . import pusher
+        conn = queries.db.connect()
+        try:
+            actions.close_overdue(conn)      # 与真实推送同前置:过期 end 先关闭
+            picked, blocked = pusher.pick(conn)
+        finally:
+            conn.close()
+
+        editable = {s["key"]: s for s in settings_mod.all()}
+        layers = []
+        for meta in funnel.LAYERS:
+            lid = meta["id"]
+            hits = blocked.get(lid, [])
+            layers.append({
+                "id": lid,
+                "label": meta["label"],
+                "desc": meta["desc"],
+                "blocked_count": len(hits),
+                "blocked_tasks": [
+                    {"id": t["id"], "title": t["title"], "reason": reason}
+                    for t, reason in hits
+                ],
+                "settings": [editable[k] for k in meta["setting_keys"]],
+            })
+        # 通过所有过滤、本轮将弹出的任务(在「定档位」层展示)
+        will_push = [{"id": t["id"], "title": t["title"], "stage": stage}
+                     for t, stage, _ in picked]
+        return {"layers": layers, "will_push": will_push,
+                "poll_interval": settings_mod.get("poll_interval")}
 
     _mount_static(app)
     return app
