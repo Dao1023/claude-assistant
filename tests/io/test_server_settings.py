@@ -45,3 +45,23 @@ def test_put_rejects_out_of_range(client):
 def test_put_rejects_unknown_key(client):
     r = client.put("/api/settings", json={"bogus": 1})
     assert r.status_code == 400
+
+
+# ---------- SPA catch-all 不得吞掉 /api ----------
+
+def test_get_settings_returns_json_not_html(client):
+    # 接口必须返回 JSON;若被 SPA 回退成 index.html(text/html)则说明路由没生效
+    r = client.get("/api/settings")
+    assert r.headers["content-type"].startswith("application/json")
+
+
+def test_unknown_api_returns_404_json_not_spa(client, tmp_path, monkeypatch):
+    # 构造一个有 dist 的环境,验证未匹配的 /api/* 回 404 而非 index.html
+    dist = tmp_path / "dist"
+    (dist / "assets").mkdir(parents=True)
+    (dist / "index.html").write_text("<html>spa</html>", encoding="utf-8")
+    monkeypatch.setattr("assistant.io.server.WEB_DIST", dist)
+    c = TestClient(create_app())
+    r = c.get("/api/no-such-endpoint")
+    assert r.status_code == 404
+    assert r.headers["content-type"].startswith("application/json")

@@ -243,6 +243,10 @@ def _mount_static(app: FastAPI):
 
     @app.get("/{full_path:path}")
     def spa(full_path: str):
+        # 未匹配的 /api/* 返回 404 JSON,而不是回退 index.html——
+        # 否则前端调错路径会拿到 200+HTML,静默失败、页面空白无提示。
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail=f"接口不存在: /{full_path}")
         # 命中的真实文件(如 favicon)直接返回;否则回退 index.html 交给前端路由
         candidate = WEB_DIST / full_path
         if full_path and candidate.is_file():
