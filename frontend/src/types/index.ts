@@ -86,6 +86,30 @@ export interface SnoozeOptionsResponse {
   options: SnoozeOption[]
 }
 
+/** 一项可编辑的通知规则 */
+export interface EditableSetting {
+  key: string
+  value: number
+  type: 'float' | 'int'
+  unit: string
+  label: string
+  desc: string
+  min: number
+  max: number
+}
+
+/** 一段只读规则说明 */
+export interface ReadonlyRule {
+  title: string
+  desc: string
+}
+
+/** GET /api/settings 返回 */
+export interface RulesResponse {
+  editable: EditableSetting[]
+  readonly: ReadonlyRule[]
+}
+
 /** 新增任务表单(POST /api/tasks)。drive 创建时定死。 */
 export interface AddTaskPayload {
   title: string
