@@ -127,12 +127,12 @@ describe('RulesPage(通知漏斗)', () => {
     expect(wrapper.find('.rules-page').exists()).toBe(true)
   })
 
-  it('免打扰总闸:畅通时显示畅通,无「立即恢复」', async () => {
+  it('免打扰总闸:畅通时显示畅通,无「恢复」', async () => {
     mockFunnel.mockResolvedValue(FUNNEL)
     const wrapper = await mountPage()
     expect(wrapper.find('.dnd-card').exists()).toBe(true)
     expect(wrapper.text()).toContain('畅通')
-    expect(wrapper.text()).not.toContain('立即恢复')
+    expect(wrapper.find('.dnd-active').exists()).toBe(false)
   })
 
   it('免打扰总闸:临时 DND 生效时显示冻结与恢复入口', async () => {
@@ -142,7 +142,15 @@ describe('RulesPage(通知漏斗)', () => {
     })
     const wrapper = await mountPage()
     expect(wrapper.text()).toContain('冻结中')
-    expect(wrapper.text()).toContain('立即恢复')
-    expect(wrapper.text()).toContain('2033-05-18 08:00')
+    expect(wrapper.text()).toContain('免打扰到 2033-05-18 08:00')
+    expect(wrapper.find('.dnd-active').exists()).toBe(true)
+  })
+
+  it('夜间横带渲染刻度与当前时段', async () => {
+    mockFunnel.mockResolvedValue(FUNNEL)
+    const wrapper = await mountPage()
+    expect(wrapper.find('.night-band').exists()).toBe(true)
+    expect(wrapper.find('.nb-fill').exists()).toBe(true)
+    expect(wrapper.text()).toContain('0 点到 8 点')
   })
 })

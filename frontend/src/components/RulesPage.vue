@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { clearDnd, fetchFunnel, fetchRules, setDnd, updateSettings } from '@/api/client'
 import type { EditableSetting, FunnelResponse } from '@/types'
+import NightBand from './NightBand.vue'
 
 const funnel = ref<FunnelResponse | null>(null)
 const editable = ref<EditableSetting[]>([])
@@ -10,7 +11,7 @@ const loading = ref(false)
 const saving = ref(false)
 const expanded = ref<Record<string, boolean>>({})
 const draft = ref<Record<string, number>>({})
-const dndUntilInput = ref<string>('')   // 临时免打扰到期时刻('YYYY-MM-DD HH:MM')
+const tempHours = ref(0)               // 临时免打扰拖的小时数(0~5,0=不开)
 const dndOperating = ref(false)
 
 async function load() {
@@ -20,7 +21,6 @@ async function load() {
     funnel.value = f
     editable.value = r.editable
     for (const s of r.editable) draft.value[s.key] = s.value
-    dndUntilInput.value = f.dnd.until_str ?? ''
   } catch (err) {
     ElMessage.error(err instanceof Error ? err.message : '加载规则失败')
   } finally {
@@ -43,15 +43,17 @@ async function save() {
   }
 }
 
-async function applyDnd() {
-  if (!dndUntilInput.value) {
-    ElMessage.warning('先选一个免打扰到几点')
-    return
-  }
+/** 拖动条松手:>0 则开临时免打扰 N 小时。 */
+async function applyTempDnd(hours: number) {
+  if (!hours) return
   dndOperating.value = true
   try {
-    await setDnd(dndUntilInput.value)
-    ElMessage.success(`免打扰到 ${dndUntilInput.value}`)
+    const until = new Date(Date.now() + hours * 3600 * 1000)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const str = `${until.getFullYear()}-${pad(until.getMonth() + 1)}-${pad(until.getDate())} ${pad(until.getHours())}:${pad(until.getMinutes())}`
+    await setDnd(str)
+    ElMessage.success(`免打扰 ${hours} 小时,到 ${str.slice(11)}`)
+    tempHours.value = 0
     await load()
   } catch (err) {
     ElMessage.error(err instanceof Error ? err.message : '设置失败')
@@ -70,6 +72,16 @@ async function restoreDnd() {
     ElMessage.error(err instanceof Error ? err.message : '恢复失败')
   } finally {
     dndOperating.value = false
+  }
+}
+
+/** 夜间横带拖动:松手即落库(总闸的一环,不应要求再点底部「保存配置」)。 */
+async function saveNightEnd(hour: number) {
+  try {
+    await updateSettings({ dnd_night_end: hour })
+    await load()
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '保存失败')
   }
 }
 
@@ -96,48 +108,43 @@ onMounted(load)
       通过所有层、且排到前面的,才会弹出催办小卡。数字是<strong>此刻</strong>的真实统计。
     </p>
 
-    <!-- 免打扰总闸:整条流水线的开关,置顶 -->
+    <!-- 免打扰总闸:整条流水线的开关,置顶。上下两块,形态自解释,不靠小字。 -->
     <div v-if="funnel" class="dnd-card" :class="{ frozen: funnel.dnd.active }">
       <div class="dnd-head">
         <span class="dnd-icon">🌙</span>
         <span class="dnd-title">免打扰</span>
-        <span v-if="funnel.dnd.active" class="dnd-state frozen">冻结中,一张都不弹</span>
+        <span v-if="funnel.dnd.active" class="dnd-state frozen">冻结中</span>
         <span v-else class="dnd-state clear">畅通</span>
       </div>
-      <p class="dnd-desc">
-        夜间 0 点到早 {{ funnel.dnd.night_end }} 点自动免打扰;也可手动开到指定时刻。
-        闸一关,下面整条线全停。
-      </p>
-      <div class="dnd-controls">
-        <el-date-picker
-          v-model="dndUntilInput"
-          type="datetime"
-          placeholder="免打扰到几点"
-          format="YYYY-MM-DD HH:mm"
-          value-format="YYYY-MM-DD HH:mm"
-          class="dnd-picker"
-        />
-        <el-button size="small" :loading="dndOperating" @click="applyDnd">开启</el-button>
-        <el-button
-          v-if="funnel.dnd.until"
-          size="small"
-          :loading="dndOperating"
-          @click="restoreDnd"
-        >立即恢复</el-button>
+
+      <!-- 夜间·每天:一段时间,用横带表达 -->
+      <div class="dnd-block">
+        <div class="dnd-block-label">夜间 · 每天</div>
+        <NightBand v-model="draft['dnd_night_end']" @change="saveNightEnd" />
+        <div class="dnd-block-hint">深色段不打扰,拖到亮处尽头调整;{{ draft['dnd_night_end'] === 0 ? '已关闭' : `0 点到 ${draft['dnd_night_end']} 点` }}</div>
       </div>
-      <p v-if="funnel.dnd.until_str" class="dnd-current">手动免打扰到 {{ funnel.dnd.until_str }}</p>
-      <!-- 夜间恢复点配置(挂在 dnd 层,但 dnd 层不通用渲染,故在此单独放) -->
-      <div class="setting-row dnd-night">
-        <span class="setting-label">夜间免打扰到</span>
-        <el-input-number
-          v-model="draft['dnd_night_end']"
-          :min="0"
-          :max="23"
-          :step="1"
-          controls-position="right"
-          class="setting-input"
-        />
-        <span class="setting-unit">点(0 = 关闭夜间免打扰)</span>
+
+      <!-- 临时·这一次:一段时长,用拖动条表达 -->
+      <div class="dnd-block">
+        <div class="dnd-block-label">临时 · 这一次</div>
+        <div v-if="funnel.dnd.until" class="dnd-active">
+          <span class="dnd-active-dot">●</span>
+          免打扰到 {{ funnel.dnd.until_str }}
+          <el-button size="small" :loading="dndOperating" @click="restoreDnd">恢复</el-button>
+        </div>
+        <div v-else class="dnd-slider">
+          <el-slider
+            v-model="tempHours"
+            :min="0"
+            :max="5"
+            :step="0.5"
+            :format-tooltip="(h: number) => (h ? `${h} 小时` : '不开')"
+            :disabled="dndOperating"
+            class="dnd-slider-bar"
+            @change="applyTempDnd"
+          />
+          <span class="dnd-slider-text">{{ tempHours ? `接下来 ${tempHours} 小时` : '拖动开启' }}</span>
+        </div>
       </div>
     </div>
 
@@ -259,29 +266,44 @@ onMounted(load)
 .dnd-state.clear {
   color: #67c23a;
 }
-.dnd-desc {
-  margin: 8px 0 0 24px;
-  font-size: 12px;
-  color: #909399;
-  line-height: 1.6;
+.dnd-block {
+  margin: 14px 0 0 24px;
 }
-.dnd-controls {
-  margin: 10px 0 0 24px;
+.dnd-block-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a6b7b;
+  margin-bottom: 6px;
+}
+.dnd-block-hint {
+  font-size: 11px;
+  color: #a0a8b5;
+  margin-top: 4px;
+}
+.dnd-slider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.dnd-slider-bar {
+  flex: 1;
+  max-width: 320px;
+}
+.dnd-slider-text {
+  font-size: 12px;
+  color: #5a6b7b;
+  white-space: nowrap;
+}
+.dnd-active {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  font-size: 13px;
+  color: #2c3e50;
 }
-.dnd-picker {
-  width: 200px;
-}
-.dnd-current {
-  margin: 8px 0 0 24px;
-  font-size: 12px;
+.dnd-active-dot {
   color: #5b9bd5;
-}
-.dnd-night {
-  margin: 10px 0 0 24px;
+  font-size: 10px;
 }
 .layer-wrap {
   display: flex;
