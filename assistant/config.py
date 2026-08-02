@@ -5,7 +5,6 @@ BASE = Path(__file__).parent.parent          # 项目根目录
 DATA = BASE / "data"                         # 运行期数据目录(进 .gitignore)
 DATA.mkdir(exist_ok=True)
 
-INBOX = DATA / "inbox.json"                  # 信箱文件(Claude Code ↔ APP 契约)
 DB_PATH = DATA / "assistant.db"              # SQLite 数据库
 
 # claude.exe 路径(winget 安装)

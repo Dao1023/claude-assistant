@@ -8,6 +8,7 @@
 import queue
 import tkinter as tk
 
+from ..app import lifecycle
 from ..core.actions import snooze_options
 
 # 三档配色(背景 / 标题文字)
@@ -111,7 +112,8 @@ def _make_card(task, stage, on_done, on_snooze, on_ai):
 
 
 def _drain():
-    """UI 线程:取出队列里的弹卡请求并创建小卡。"""
+    """UI 线程:取出队列里的弹卡请求并创建小卡。顺带轮询全程序退出标志。"""
+    lifecycle.poll_and_quit()          # 托盘点退出 → 主线程在此执行真正的全退出
     try:
         while True:
             task, stage, cbs = _requests.get_nowait()
