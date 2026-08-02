@@ -1,6 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -33,5 +33,17 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    // 测试环境不加载 CSS(Element Plus 自动注入的 .css 在 Node 下无法解析)
+    css: false,
+    server: {
+      deps: {
+        // 把 .css 内联处理掉,避免 Unknown file extension ".css"
+        inline: [/element-plus/],
+      },
+    },
   },
 })
