@@ -2,17 +2,12 @@
 
 属于 io 层:弹 tkinter 小卡(popup),按钮接生命周期(完成/稍后/找AI)。
 时间一律 Unix 秒级 int(core/timeutil.py)。
+数值阈值(冷却系数/兜底/升级次数/危机阈值/最多弹卡)读 core/settings,可在规则页配置。
 """
-from ..core import actions, db, engine
+from ..core import actions, db, engine, settings
 from ..core.timeutil import now_ts, to_str
 from .launcher import launch_claude
 from .popup import show_task_card
-
-MAX_CONCURRENT = 1        # 一次只催一个(最该做的那个),end 优先
-COOLDOWN_RATIO = 0.25     # 冷却 = 任务间隔 × 此系数(原神每日 6h、论文 15d≈3.7d)
-COOLDOWN_FALLBACK = 3600  # 任务无间隔字段时的兜底冷却(秒)
-ESCALATE_NAGS = 3         # 被推几次后升级档位
-CRISIS_IMPORTANCE = 1.0   # end 重要性到此值(约剩 9 小时内)升级为 crisis
 
 
 def _task_interval(task):
@@ -53,20 +48,20 @@ def _cooling_down(task, last_at, now=None):
         return True
     if not last_at:
         return False
-    interval = _task_interval(task) or COOLDOWN_FALLBACK
-    cooldown = max(int(interval * COOLDOWN_RATIO), 60)   # 至少 60s,避免高频狂弹
+    interval = _task_interval(task) or settings.get("cooldown_fallback")
+    cooldown = max(int(interval * settings.get("cooldown_ratio")), 60)   # 至少 60s,避免高频狂弹
     return (now - int(last_at)) < cooldown
 
 
 def _stage(task, nag_count):
     """根据任务与已推次数定档位。end 临近截止升级为 crisis(过期任务已被关闭,不在此列)。"""
     if task["drive"] == "end":
-        if engine.end_importance(task["deadline"]) >= CRISIS_IMPORTANCE:
+        if engine.end_importance(task["deadline"]) >= settings.get("crisis_importance"):
             return "crisis"
-        if nag_count >= ESCALATE_NAGS:
+        if nag_count >= settings.get("escalate_nags"):
             return "escalating"
     else:
-        if nag_count >= ESCALATE_NAGS * 2:
+        if nag_count >= settings.get("escalate_nags") * 2:
             return "escalating"
     return "gentle"
 
@@ -96,31 +91,30 @@ def _make_callbacks(tid):
 
 
 def tick_push():
-    """主入口:挑一个最该催的(先 end 后 start,取第一个不冷却的)→ 弹小卡并记录。"""
+    """主入口:挑最多 max_concurrent 个最该催的(end 优先)→ 弹小卡并记录。"""
     conn = db.connect()
     db.init_db()
     actions.close_overdue(conn)            # 超时即关闭:过期 end 任务先落 closed
     ends, starts = engine.today_lists(conn)
     now = _now()
+    limit = settings.get("max_concurrent")
 
-    picked = None
+    picked = []
     for task in ends + starts:             # end 优先,再 start(均已排序)
+        if len(picked) >= limit:
+            break
         if _is_future_period(task, now):   # 明天/后天的周期任务,今晚不催
             continue
         nag_count, last_at = db.push_stats(conn, task["id"])
         if _cooling_down(task, last_at, now):
             continue
-        picked = (task, _stage(task, nag_count))
-        break                              # 一次一个
-    if picked:
-        task, stage = picked
+        picked.append((task, _stage(task, nag_count)))
+    for task, stage in picked:
         db.log_push(conn, task["id"], now, stage)
     conn.close()
 
-    if picked:
-        task, stage = picked
+    for task, stage in picked:
         on_done, on_snooze, on_ai = _make_callbacks(task["id"])
         show_task_card(task, stage, on_done, on_snooze, on_ai)
         print(f"[{to_str(now)}] 弹小卡: [{stage}] {task['title']}")
-        return 1
-    return 0
+    return len(picked)

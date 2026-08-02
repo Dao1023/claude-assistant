@@ -32,13 +32,17 @@ def _coerce(key, raw):
 
 
 def _load():
-    """从库读全部已存值并合并默认值,填充缓存。"""
+    """从库读全部已存值并合并默认值,填充缓存。库不可用时全用默认。"""
     global _cache
-    conn = db.connect()
+    stored = {}
     try:
-        stored = db.all_settings(conn)
-    finally:
-        conn.close()
+        conn = db.connect()
+        try:
+            stored = db.all_settings(conn)
+        finally:
+            conn.close()
+    except Exception:
+        stored = {}
     _cache = {key: _coerce(key, stored[key]) if key in stored else s[1]
               for key, s in ((s[0], s) for s in SETTINGS)}
 

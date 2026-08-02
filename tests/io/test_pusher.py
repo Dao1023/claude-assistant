@@ -8,7 +8,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from assistant import config
-from assistant.core import actions, db
+from assistant.core import actions, db, settings
 from assistant.io import pusher
 
 DAY = 86400
@@ -18,10 +18,12 @@ NOW = int(time.time())
 @pytest.fixture()
 def conn(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(settings, "_cache", None)   # 隔离设置缓存,指向测试库
     db.init_db()
     c = db.connect()
     yield c
     c.close()
+    monkeypatch.setattr(settings, "_cache", None)
 
 
 # ---------- 冷却 ∝ 任务间隔 ----------
@@ -54,6 +56,13 @@ def test_cooldown_fallback_when_no_interval():
 def test_no_cooldown_when_never_pushed():
     t = _task("end", recurrence_interval=DAY)
     assert pusher._cooling_down(t, None, now=NOW) is False
+
+
+def test_cooldown_fallback_reads_settings(conn):
+    # 把兜底冷却从 3600 改小到 300s,则 10 分钟前的推送不再冷却
+    settings.set("cooldown_fallback", 300)
+    t = _task("end", recurrence_interval=None)
+    assert pusher._cooling_down(t, NOW - 600, now=NOW) is False
 
 
 # ---------- snooze_until 优先 ----------
