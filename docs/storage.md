@@ -23,7 +23,7 @@ V1 用 `inbox.json` 通信,简单直接。但 V2 的需求(任务系统 + 推送
 ## 与 Claude Code 的通信(独立于存储)
 
 - **存储**(SQLite)是 APP 的内部实现,Claude Code 不直接读写。
-- **通信**仍是文件指令:Claude Code 把用户的自然语言(增/删/改/查)翻译成结构化指令写到约定文件,APP 解析后操作 SQLite,并回写结果。
-- 这样既保留 V1"文件信箱"的简单,又把数据严谨性交给 SQLite。
-
-> 具体指令格式、表结构、导出格式,留到方案阶段统一设计。
+- **通信**走 HTTP 接口(`io/server.py`):Claude Code / WebUI 经 `/api` 同步调用
+  任务增删改查与规则配置(`core/actions.py` / `core/settings.py`)。
+- 早期的 `inbox.json` / `commands.json` 文件信箱已于通知层重构删除,
+  改为同步实时调用,不再异步轮询。

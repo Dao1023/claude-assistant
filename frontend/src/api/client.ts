@@ -1,6 +1,9 @@
 import type {
   AddTaskPayload,
+  EditableSetting,
+  FunnelResponse,
   PushesResponse,
+  RulesResponse,
   SnoozeOptionsResponse,
   TaskDetail,
   TasksResponse,
@@ -107,5 +110,58 @@ export async function updateTask(id: string, payload: UpdateTaskPayload): Promis
   })
   if (!res.ok) {
     throw new Error(res.status === 404 ? '任务不存在' : `保存失败:${res.status} ${res.statusText}`)
+  }
+}
+
+/** 拉取全部通知规则(可编辑 + 只读说明)。 */
+export async function fetchRules(): Promise<RulesResponse> {
+  const res = await fetch('/api/settings', { headers: { Accept: 'application/json' } })
+  if (!res.ok) {
+    throw new Error(`请求失败:${res.status} ${res.statusText}`)
+  }
+  return (await res.json()) as RulesResponse
+}
+
+/** 更新通知规则。values 为 { key: value };400 时抛后端 detail。 */
+export async function updateSettings(values: Record<string, number>): Promise<EditableSetting[]> {
+  const res = await fetch('/api/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(values),
+  })
+  if (!res.ok) {
+    const detail = await res.json().catch(() => null)
+    throw new Error(detail?.detail ? JSON.stringify(detail.detail) : `保存失败:${res.status}`)
+  }
+  const body = (await res.json()) as { editable: EditableSetting[] }
+  return body.editable
+}
+
+/** 拉取通知漏斗实时数据(每层筛掉了哪些任务)。 */
+export async function fetchFunnel(): Promise<FunnelResponse> {
+  const res = await fetch('/api/funnel', { headers: { Accept: 'application/json' } })
+  if (!res.ok) {
+    throw new Error(`请求失败:${res.status} ${res.statusText}`)
+  }
+  return (await res.json()) as FunnelResponse
+}
+
+/** 开临时免打扰。until 为 'YYYY-MM-DD HH:MM' 到期时刻。 */
+export async function setDnd(until: string): Promise<void> {
+  const res = await fetch('/api/dnd', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ until }),
+  })
+  if (!res.ok) {
+    throw new Error(`设置失败:${res.status} ${res.statusText}`)
+  }
+}
+
+/** 立即恢复:清掉临时免打扰。 */
+export async function clearDnd(): Promise<void> {
+  const res = await fetch('/api/dnd', { method: 'DELETE' })
+  if (!res.ok) {
+    throw new Error(`恢复失败:${res.status} ${res.statusText}`)
   }
 }

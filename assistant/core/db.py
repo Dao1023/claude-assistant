@@ -47,6 +47,11 @@ CREATE TABLE IF NOT EXISTS push_log (
   stage      TEXT,
   response   TEXT
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 """
 
 
@@ -151,3 +156,24 @@ def push_stats(conn, tid):
         (tid,),
     ).fetchone()
     return row["n"], row["last_at"]
+
+
+# ---------- settings ----------
+
+def get_setting(conn, key):
+    row = conn.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
+    return row["value"] if row else None
+
+
+def set_setting(conn, key, value):
+    with conn:
+        conn.execute(
+            "INSERT INTO settings (key,value) VALUES (?,?)"
+            " ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (key, str(value)),
+        )
+
+
+def all_settings(conn):
+    return {r["key"]: r["value"]
+            for r in conn.execute("SELECT key,value FROM settings").fetchall()}

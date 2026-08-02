@@ -16,11 +16,10 @@ export interface EndTask {
   id: string
   title: string
   importance: number
-  /** 人话倒计时,如 "还剩 4 小时" / "还剩 2 天" */
-  countdown: string
   /** 重复间隔(天),空=非周期 */
   recurrence_days?: number | null
   tags: string[]
+  /** 'YYYY-MM-DD HH:MM',倒计时由前端据此自算 */
   deadline?: string
 }
 
@@ -53,8 +52,6 @@ export interface TaskDetail {
   created: string
   tags: string[]
   importance: number
-  /** end 类任务的人话倒计时 */
-  countdown?: string
   /** start 类任务的距今天数 */
   days_since?: number
 }
@@ -84,6 +81,70 @@ export interface SnoozeOption {
 /** GET /api/snooze-options 返回 */
 export interface SnoozeOptionsResponse {
   options: SnoozeOption[]
+}
+
+/** 一项可编辑的通知规则 */
+export interface EditableSetting {
+  key: string
+  value: number
+  type: 'float' | 'int'
+  unit: string
+  label: string
+  desc: string
+  min: number
+  max: number
+}
+
+/** 一段只读规则说明 */
+export interface ReadonlyRule {
+  title: string
+  desc: string
+}
+
+/** GET /api/settings 返回 */
+export interface RulesResponse {
+  editable: EditableSetting[]
+  readonly: ReadonlyRule[]
+}
+
+/** 漏斗一层(实时统计) */
+export interface FunnelLayer {
+  id: string
+  label: string
+  desc: string
+  /** 这层当前筛掉了几个任务 */
+  blocked_count: number
+  /** 被这层挡住的任务(供展开) */
+  blocked_tasks: { id: string; title: string; reason: string }[]
+  /** 挂在该层的配置项 */
+  settings: EditableSetting[]
+}
+
+/** 本轮将弹出的任务 */
+export interface WillPushTask {
+  id: string
+  title: string
+  stage: string
+}
+
+/** 免打扰总闸当前状态 */
+export interface DndStatus {
+  /** 此刻是否冻结中(夜间窗口或临时 DND 任一命中) */
+  active: boolean
+  /** 临时 DND 到期时间戳(Unix 秒),无则 null */
+  until: number | null
+  /** until 的人话字符串,供直接显示 */
+  until_str: string | null
+  /** 夜间免打扰恢复到几点(0-23) */
+  night_end: number
+}
+
+/** GET /api/funnel 返回 */
+export interface FunnelResponse {
+  layers: FunnelLayer[]
+  will_push: WillPushTask[]
+  poll_interval: number
+  dnd: DndStatus
 }
 
 /** 新增任务表单(POST /api/tasks)。drive 创建时定死。 */

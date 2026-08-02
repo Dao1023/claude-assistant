@@ -15,29 +15,6 @@ def _days_since(anchor_ts):
     return (now_ts() - int(anchor_ts)) / SECONDS_PER_DAY
 
 
-def _remain(deadline_ts):
-    """返回 (剩余天, 剩余秒)。已过期返回负。None → (None, None)。"""
-    if deadline_ts is None:
-        return None, None
-    delta_sec = int(deadline_ts) - now_ts()
-    return delta_sec // SECONDS_PER_DAY, delta_sec
-
-
-def _fmt_countdown(deadline):
-    """人话倒计时:'已过期' / '今天 18:00' / '还剩 2 天'。"""
-    days, secs = _remain(deadline)
-    if secs is None:
-        return ""
-    if secs <= 0:
-        return "已过期"
-    if days >= 1:
-        return f"还剩 {days} 天"
-    h = secs // 3600
-    if h >= 1:
-        return f"还剩 {h} 小时"
-    return f"还剩 {secs // 60} 分钟"
-
-
 def _secs_to_days(secs):
     """内部秒 -> 前端天数。None -> None。"""
     if secs is None:
@@ -89,7 +66,6 @@ def dashboard_data(conn=None):
         ends.append({**t,
                      "importance": t["importance"],
                      "deadline": to_str(t["deadline"]),
-                     "countdown": _fmt_countdown(t["deadline"]),
                      "recurrence_days": _secs_to_days(t.pop("recurrence_interval")),
                      "tags": _task_tags(conn, t["id"])})
     if close:
@@ -118,7 +94,6 @@ def task_detail(tid, conn=None):
     t["snooze_until"] = to_str(t.get("snooze_until"))
     if t["drive"] == "end":
         t["importance"] = engine.end_importance(t["deadline"])
-        t["countdown"] = _fmt_countdown(t["deadline"])
         t["deadline"] = to_str(t["deadline"])
         # 秒 -> 天数,供前端显示/回填
         t["recurrence_days"] = _secs_to_days(t.pop("recurrence_interval"))

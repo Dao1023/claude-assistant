@@ -79,6 +79,21 @@ CREATE TABLE push_log (
 
 > 任务的"当前推送状态"(被推几次、当前档位)由 push_log **算出**,不冗余存储,保证数据只有一份。
 
+### 6. `settings` —— 通知规则配置(键值)
+
+```sql
+CREATE TABLE settings (
+  key   TEXT PRIMARY KEY,        -- 规则键:cooldown_ratio / escalate_nags / ...
+  value TEXT NOT NULL            -- 数值,存文本,读出时按类型转 int/float
+);
+```
+
+> 推送的数值阈值(冷却系数/兜底冷却/升级档次数/危机阈值/轮询间隔/一次最多弹卡/夜间免打扰恢复点)
+> 存这里,由 `core/settings.py` 统一读写(带进程内缓存)。**规则页展示值 = 推送代码
+> 运行值,同源**。算法/逻辑(重要性公式、档位判定)不存表,保持只读。
+> **临时免打扰 `dnd_until` 也存此表,但它是运行时状态不是规则**——不进 SETTINGS
+> 列表(不在规则页渲染成配置行),由 `settings.get/set_dnd_until` 单独读写,到期自动失效。
+
 ## 二、操作接口(Claude Code / 前端 → APP)
 
 任务的增删改查走 **HTTP 接口**(`io/server.py`,FastAPI),底层统一复用 `core/actions.py` 的业务逻辑。早期曾用 `commands.json` 文件信箱传话,有了 HTTP 接口后已删除——现在是同步实时调用,不再异步轮询。
@@ -96,6 +111,11 @@ CREATE TABLE push_log (
 | `GET /api/tasks` | — | 面板数据(starts/ends/tags;tags 按活跃数降序) |
 | `GET /api/tasks/{id}` | — | 单任务详情(404 若不存在) |
 | `GET /api/tasks/{id}/pushes` | — | 提醒记录(倒序) |
+| `GET /api/settings` | `settings.all` | 全部通知规则(可编辑项当前值+元信息 + 只读算法说明) |
+| `PUT /api/settings` | `settings.set` | 更新一个/多个可编辑规则;未知 key / 越界 400 |
+| `GET /api/funnel` | `pusher.pick` | 通知漏斗实时统计:每层筛掉了哪些任务(只算不弹);含 `dnd` 总闸当前状态 |
+| `PUT /api/dnd` | `settings.set_dnd_until` | 开临时免打扰:传 `until`('YYYY-MM-DD HH:MM' 到期时刻) |
+| `DELETE /api/dnd` | `settings.set_dnd_until(None)` | 立即恢复:清掉临时免打扰 |
 
 ### 各动作的语义(与通道无关)
 
@@ -168,14 +188,24 @@ WHERE g.name = 'genshin';   -- 或 != 'genshin' 隐藏
 
 已全部分层落地,依赖单向 `config → core → io → app → main` 无环:
 
-- `core/db.py` — 建库 + 连接 + 基础 CRUD(5 张表)
+- `core/db.py` — 建库 + 连接 + 基础 CRUD(6 张表)
 - `core/timeutil.py` — 时间转换中枢:内部 Unix 秒 int ↔ 边界字符串/天数互转
 - `core/actions.py` — 任务动作 add/done/update/close/snooze/query + **close_overdue(超时即关闭)**(纯业务,供 HTTP 与催办小卡复用)
 - `core/engine.py` — 重要性引擎:start `log((now-anchor)/expected_duration)`、end `-log(剩余)`,产出两个清单
+- `core/funnel.py` — 通知过滤漏斗:免打扰总闸(dnd_active)+ 纯函数管线(未来周期/推迟/冷却)+ 定档 + 每层元信息;
+  推送(tick_push)与规则页统计(/api/funnel)共用同一条管线,保证展示=真实运行
+- `core/settings.py` — 通知规则配置单一读写口:get/set/all + 元信息 + 缓存(settings 表)
 - `core/queries.py` — 面板数据加工(倒计时/距上次天数/秒→天数/tag)
-- `io/server.py` — FastAPI:查询 + 写接口,托管前端构建产物;查询入口跑 close_overdue
-- `io/pusher.py` — 推送生命周期:三档催促 + 节流,弹催办小卡,写 push_log
-- `io/notifier.py / launcher.py / watcher.py`、`app/scheduler.py / tray.py` — 沿用 V1
+- `io/server.py` — FastAPI:查询 + 写接口 + `/api/settings`,托管前端构建产物;查询入口跑 close_overdue
+- `io/pusher.py` — 推送生命周期:三档催促 + 节流,弹催办小卡,写 push_log(阈值读 settings)
+- `io/popup.py` — tkinter 催办小卡(唯一推送出口);`io/launcher.py` — 唤起 claude / 面板
+- `app/tray.py` — 系统托盘(打开面板 / 退出;explorer 重启自动重建图标)
+
+> V1 通知通道(inbox.json + watcher + 系统 Toast)已于通知层重构删除,
+> 推送唯一通道为 pusher → popup 小卡。
 
 前端面板为独立 Vue3 工程(`frontend/`,Vite + Element Plus + Tailwind),经 `/api` 与本服务交互。
+顶部 Tab 切换「任务看板 / 通知规则」。规则页是**漏斗视图**:任务从上往下流过
+「未来周期 → 推迟中 → 冷却中 → 限量 → 定档位」各层,每层显示人话说明、此刻挡掉了
+几个任务(实时,GET /api/funnel)、可展开看具体任务;配置项嵌在各自起作用的层上。
 

@@ -8,10 +8,8 @@ version = "0.7.0"
 description = "常驻主动提醒助理:Claude Code 的哑终端助手(任务系统 + 推送生命周期 + WebUI 面板)"
 requires-python = ">=3.11"
 dependencies = [
-    "watchdog==6.0.0",
     "pystray==0.19.5",
     "pillow==12.3.0",
-    "windows-toasts==1.3.1",
     "fastapi==0.138.0",
     "uvicorn==0.38.0",
 ]

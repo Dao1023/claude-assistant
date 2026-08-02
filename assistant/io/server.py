@@ -27,8 +27,23 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from ..config import WEB_DIST
-from ..core import actions, queries
+from ..core import actions, funnel, queries
+from ..core import settings as settings_mod
 from ..core.timeutil import SECONDS_PER_DAY, to_ts
+
+
+# 只读规则说明(算法/逻辑,不开放编辑),规则页展示用
+READONLY_RULES = [
+    {"title": "重要性引擎",
+     "desc": "start:log(距今秒/预期间隔秒),越久越大;end:-log(剩余天数),越近越大。"},
+    {"title": "档位判定",
+     "desc": "默认「提醒」;end 推满升级档次数升「催办」,start 为其 2 倍;"
+             "end 重要性达危机阈值无视次数直接「紧急」。"},
+    {"title": "优先级",
+     "desc": "end 优先于 start;未来周期 end(剩余>一个周期)今晚不催;过 deadline 的 end 即关闭。"},
+    {"title": "冷却与推迟",
+     "desc": "冷却 = 任务间隔 × 冷却系数;推迟(snooze)未到点优先于冷却,一律不催。"},
+]
 
 
 # ---------- 请求体模型(Pydantic 校验 + 自动文档) ----------
@@ -60,6 +75,10 @@ class UpdateTaskIn(BaseModel):
 
 class SnoozeIn(BaseModel):
     until: Optional[str] = None        # 推迟到此时间('YYYY-MM-DD HH:MM'),缺省 1 小时
+
+
+class DndIn(BaseModel):
+    until: str                       # 临时免打扰到此时间('YYYY-MM-DD HH:MM')
 
 
 def create_app() -> FastAPI:
@@ -174,6 +193,88 @@ def create_app() -> FastAPI:
         finally:
             conn.close()
 
+    # ---------- 通知规则设置 ----------
+
+    @app.get("/api/settings")
+    def api_get_settings():
+        """全部通知规则:可编辑项(当前值+元信息) + 只读算法说明。"""
+        return {"editable": settings_mod.all(), "readonly": READONLY_RULES}
+
+    @app.put("/api/settings")
+    def api_put_settings(body: dict):
+        """更新一个/多个可编辑规则。未知 key 400,越界 400。"""
+        errors = {}
+        for k, v in body.items():
+            try:
+                settings_mod.set(k, v)
+            except KeyError:
+                errors[k] = "未知规则项"
+            except ValueError as e:
+                errors[k] = str(e)
+        if errors:
+            raise HTTPException(status_code=400, detail=errors)
+        return {"editable": settings_mod.all()}
+
+    # ---------- 通知漏斗(规则页实时数据) ----------
+
+    @app.get("/api/funnel")
+    def api_funnel():
+        """每层当前筛掉了哪些任务(只算不弹,无副作用)。
+
+        复用 pusher.pick 的同一条过滤管线,保证页面看到的 = 真实推送会发生。
+        返回每层:说明 + 被挡任务数 + 被挡任务列表 + 该层配置项当前值。
+        """
+        from . import pusher
+        conn = queries.db.connect()
+        try:
+            actions.close_overdue(conn)      # 与真实推送同前置:过期 end 先关闭
+            picked, blocked = pusher.pick(conn)
+        finally:
+            conn.close()
+
+        editable = {s["key"]: s for s in settings_mod.all()}
+        layers = []
+        for meta in funnel.LAYERS:
+            lid = meta["id"]
+            hits = blocked.get(lid, [])
+            layers.append({
+                "id": lid,
+                "label": meta["label"],
+                "desc": meta["desc"],
+                "blocked_count": len(hits),
+                "blocked_tasks": [
+                    {"id": t["id"], "title": t["title"], "reason": reason}
+                    for t, reason in hits
+                ],
+                "settings": [editable[k] for k in meta["setting_keys"]],
+            })
+        # 通过所有过滤、本轮将弹出的任务(在「定档位」层展示)
+        will_push = [{"id": t["id"], "title": t["title"], "stage": stage}
+                     for t, stage, _ in picked]
+        # 免打扰总闸当前状态(供规则页顶部卡片展示/操作)
+        from ..core.timeutil import now_ts, to_str
+        dnd_until = settings_mod.get_dnd_until()
+        dnd = {
+            "active": funnel.dnd_active(now_ts()) is not None,
+            "until": dnd_until,                       # 临时 DND 到期时间戳,无则 None
+            "until_str": to_str(dnd_until),           # 人话,供直接显示
+            "night_end": settings_mod.get("dnd_night_end"),
+        }
+        return {"layers": layers, "will_push": will_push,
+                "poll_interval": settings_mod.get("poll_interval"), "dnd": dnd}
+
+    @app.put("/api/dnd")
+    def api_dnd_set(body: DndIn):
+        """开临时免打扰:传 until('YYYY-MM-DD HH:MM' 到期时刻)。返回当前 until 时间戳。"""
+        settings_mod.set_dnd_until(to_ts(body.until))
+        return {"until": settings_mod.get_dnd_until()}
+
+    @app.delete("/api/dnd")
+    def api_dnd_clear():
+        """立即恢复:清掉临时免打扰。"""
+        settings_mod.set_dnd_until(None)
+        return {"until": None}
+
     _mount_static(app)
     return app
 
@@ -206,6 +307,10 @@ def _mount_static(app: FastAPI):
 
     @app.get("/{full_path:path}")
     def spa(full_path: str):
+        # 未匹配的 /api/* 返回 404 JSON,而不是回退 index.html——
+        # 否则前端调错路径会拿到 200+HTML,静默失败、页面空白无提示。
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail=f"接口不存在: /{full_path}")
         # 命中的真实文件(如 favicon)直接返回;否则回退 index.html 交给前端路由
         candidate = WEB_DIST / full_path
         if full_path and candidate.is_file():

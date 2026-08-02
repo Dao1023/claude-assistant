@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     DetailDrawer: typeof import('./src/components/DetailDrawer.vue')['default']
+    ElBadge: typeof import('element-plus/es')['ElBadge']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCheckTag: typeof import('element-plus/es')['ElCheckTag']
     ElDatePicker: typeof import('element-plus/es')['ElDatePicker']
@@ -28,9 +29,14 @@ declare module 'vue' {
     ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
     ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
     ElSelect: typeof import('element-plus/es')['ElSelect']
+    ElSlider: typeof import('element-plus/es')['ElSlider']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
+    ElTabPane: typeof import('element-plus/es')['ElTabPane']
+    ElTabs: typeof import('element-plus/es')['ElTabs']
     ElTimeline: typeof import('element-plus/es')['ElTimeline']
     ElTimelineItem: typeof import('element-plus/es')['ElTimelineItem']
+    NightBand: typeof import('./src/components/NightBand.vue')['default']
+    RulesPage: typeof import('./src/components/RulesPage.vue')['default']
     TagFilter: typeof import('./src/components/TagFilter.vue')['default']
     TaskCard: typeof import('./src/components/TaskCard.vue')['default']
     TaskColumn: typeof import('./src/components/TaskColumn.vue')['default']
