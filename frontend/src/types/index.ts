@@ -110,6 +110,33 @@ export interface RulesResponse {
   readonly: ReadonlyRule[]
 }
 
+/** 漏斗一层(实时统计) */
+export interface FunnelLayer {
+  id: string
+  label: string
+  desc: string
+  /** 这层当前筛掉了几个任务 */
+  blocked_count: number
+  /** 被这层挡住的任务(供展开) */
+  blocked_tasks: { id: string; title: string; reason: string }[]
+  /** 挂在该层的配置项 */
+  settings: EditableSetting[]
+}
+
+/** 本轮将弹出的任务 */
+export interface WillPushTask {
+  id: string
+  title: string
+  stage: string
+}
+
+/** GET /api/funnel 返回 */
+export interface FunnelResponse {
+  layers: FunnelLayer[]
+  will_push: WillPushTask[]
+  poll_interval: number
+}
+
 /** 新增任务表单(POST /api/tasks)。drive 创建时定死。 */
 export interface AddTaskPayload {
   title: string

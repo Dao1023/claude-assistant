@@ -1,6 +1,7 @@
 import type {
   AddTaskPayload,
   EditableSetting,
+  FunnelResponse,
   PushesResponse,
   RulesResponse,
   SnoozeOptionsResponse,
@@ -134,4 +135,13 @@ export async function updateSettings(values: Record<string, number>): Promise<Ed
   }
   const body = (await res.json()) as { editable: EditableSetting[] }
   return body.editable
+}
+
+/** 拉取通知漏斗实时数据(每层筛掉了哪些任务)。 */
+export async function fetchFunnel(): Promise<FunnelResponse> {
+  const res = await fetch('/api/funnel', { headers: { Accept: 'application/json' } })
+  if (!res.ok) {
+    throw new Error(`请求失败:${res.status} ${res.statusText}`)
+  }
+  return (await res.json()) as FunnelResponse
 }
