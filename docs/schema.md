@@ -111,6 +111,7 @@ CREATE TABLE settings (
 | `GET /api/tasks/{id}/pushes` | — | 提醒记录(倒序) |
 | `GET /api/settings` | `settings.all` | 全部通知规则(可编辑项当前值+元信息 + 只读算法说明) |
 | `PUT /api/settings` | `settings.set` | 更新一个/多个可编辑规则;未知 key / 越界 400 |
+| `GET /api/funnel` | `pusher.pick` | 通知漏斗实时统计:每层筛掉了哪些任务(只算不弹) |
 
 ### 各动作的语义(与通道无关)
 
@@ -187,6 +188,8 @@ WHERE g.name = 'genshin';   -- 或 != 'genshin' 隐藏
 - `core/timeutil.py` — 时间转换中枢:内部 Unix 秒 int ↔ 边界字符串/天数互转
 - `core/actions.py` — 任务动作 add/done/update/close/snooze/query + **close_overdue(超时即关闭)**(纯业务,供 HTTP 与催办小卡复用)
 - `core/engine.py` — 重要性引擎:start `log((now-anchor)/expected_duration)`、end `-log(剩余)`,产出两个清单
+- `core/funnel.py` — 通知过滤漏斗:纯函数管线(未来周期/推迟/冷却)+ 定档 + 每层元信息;
+  推送(tick_push)与规则页统计(/api/funnel)共用同一条管线,保证展示=真实运行
 - `core/settings.py` — 通知规则配置单一读写口:get/set/all + 元信息 + 缓存(settings 表)
 - `core/queries.py` — 面板数据加工(倒计时/距上次天数/秒→天数/tag)
 - `io/server.py` — FastAPI:查询 + 写接口 + `/api/settings`,托管前端构建产物;查询入口跑 close_overdue
@@ -198,5 +201,7 @@ WHERE g.name = 'genshin';   -- 或 != 'genshin' 隐藏
 > 推送唯一通道为 pusher → popup 小卡。
 
 前端面板为独立 Vue3 工程(`frontend/`,Vite + Element Plus + Tailwind),经 `/api` 与本服务交互。
-顶部 Tab 切换「任务看板 / 通知规则」,规则页完整展示全部规则并可编辑数值阈值。
+顶部 Tab 切换「任务看板 / 通知规则」。规则页是**漏斗视图**:任务从上往下流过
+「未来周期 → 推迟中 → 冷却中 → 限量 → 定档位」各层,每层显示人话说明、此刻挡掉了
+几个任务(实时,GET /api/funnel)、可展开看具体任务;配置项嵌在各自起作用的层上。
 
