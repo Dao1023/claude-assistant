@@ -1,4 +1,8 @@
-"""测试:推送生命周期(io/pusher)的按需冷却与一次一个。用临时 DB。"""
+"""测试:推送生命周期(io/pusher)的集成行为:end 优先、限量、过滤生效。用临时 DB。
+
+纯过滤/定档逻辑(冷却、未来周期、推迟、档位)已抽到 core/funnel,
+其单元测试见 tests/core/test_funnel.py;本文件只测 tick_push 的端到端挑选行为。
+"""
 import sys
 import time
 from pathlib import Path
@@ -24,58 +28,6 @@ def conn(tmp_path, monkeypatch):
     yield c
     c.close()
     monkeypatch.setattr(settings, "_cache", None)
-
-
-# ---------- 冷却 ∝ 任务间隔 ----------
-
-def _task(drive, **kw):
-    return {"id": "x", "title": "t", "drive": drive, "snooze_until": None, **kw}
-
-
-def test_cooldown_scales_with_interval():
-    # end 周期 1 天 → 冷却 6h。5h 前推过 → 仍冷却;7h 前 → 不冷却
-    t = _task("end", recurrence_interval=DAY)
-    assert pusher._cooling_down(t, NOW - 5 * 3600, now=NOW) is True
-    assert pusher._cooling_down(t, NOW - 7 * 3600, now=NOW) is False
-
-
-def test_cooldown_uses_expected_duration_for_start():
-    # start 预期 15 天 → 冷却 3.75 天。1 天前推过 → 冷却;4 天前 → 不冷却
-    t = _task("start", expected_duration=15 * DAY)
-    assert pusher._cooling_down(t, NOW - DAY, now=NOW) is True
-    assert pusher._cooling_down(t, NOW - 4 * DAY, now=NOW) is False
-
-
-def test_cooldown_fallback_when_no_interval():
-    # 无间隔字段 → 兜底间隔 1h,冷却 = 1h×1/4 = 15 分钟
-    t = _task("end", recurrence_interval=None)
-    assert pusher._cooling_down(t, NOW - 600, now=NOW) is True    # 10 分钟前,仍冷却
-    assert pusher._cooling_down(t, NOW - 1800, now=NOW) is False  # 30 分钟前,不冷却
-
-
-def test_no_cooldown_when_never_pushed():
-    t = _task("end", recurrence_interval=DAY)
-    assert pusher._cooling_down(t, None, now=NOW) is False
-
-
-def test_cooldown_fallback_reads_settings(conn):
-    # 把兜底冷却从 3600 改小到 300s,则 10 分钟前的推送不再冷却
-    settings.set("cooldown_fallback", 300)
-    t = _task("end", recurrence_interval=None)
-    assert pusher._cooling_down(t, NOW - 600, now=NOW) is False
-
-
-# ---------- snooze_until 优先 ----------
-
-def test_snooze_until_in_future_cools():
-    t = _task("end", recurrence_interval=DAY, snooze_until=NOW + 3600)
-    # 即使从没推过,推迟未到点也冷却
-    assert pusher._cooling_down(t, None, now=NOW) is True
-
-
-def test_snooze_until_expired_resumes():
-    t = _task("end", recurrence_interval=DAY, snooze_until=NOW - 3600)
-    assert pusher._cooling_down(t, None, now=NOW) is False
 
 
 # ---------- 一次一个,end 优先 ----------
@@ -120,16 +72,6 @@ def test_tick_push_skips_snoozed(conn, monkeypatch):
 
 
 # ---------- 周期 end:不提前催下一天(通知层过滤) ----------
-
-def test_future_period_helper():
-    # 明天的每日(剩余 1.5 周期)→ 是未来周期,该过滤;今天的每日(剩余 0.5 周期)→ 不过滤
-    future = _task("end", deadline=NOW + int(1.5 * DAY), recurrence_interval=DAY)
-    current = _task("end", deadline=NOW + int(0.5 * DAY), recurrence_interval=DAY)
-    oneoff = _task("end", deadline=NOW + 30 * DAY, recurrence_interval=None)
-    assert pusher._is_future_period(future, now=NOW) is True
-    assert pusher._is_future_period(current, now=NOW) is False
-    assert pusher._is_future_period(oneoff, now=NOW) is False   # 一次性 end 不过滤
-
 
 def test_tick_push_skips_tomorrows_daily(conn, monkeypatch):
     # 只有「明天的每日」(剩余 > 1 周期)→ 不该弹
