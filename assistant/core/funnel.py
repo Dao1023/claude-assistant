@@ -11,7 +11,22 @@
 属于 core 层:不碰弹窗/HTTP,只算。ctx 由调用方备好(now + 每任务 push 统计)。
 """
 from . import engine, settings
-from .timeutil import now_ts
+from .timeutil import now_ts, to_str
+
+
+def fmt_duration(seconds):
+    """秒 → 人话时长。取最大两个单位,如 '1 小时 20 分' / '2 天 3 小时' / '45 分'。"""
+    seconds = int(seconds)
+    if seconds < 60:
+        return f"{seconds} 秒"
+    parts = []
+    for unit, size in (("天", 86400), ("小时", 3600), ("分", 60)):
+        if seconds >= size:
+            parts.append(f"{seconds // size} {unit}")
+            seconds %= size
+        if len(parts) == 2:
+            break
+    return " ".join(parts)
 
 # 每层元信息:供规则页渲染(人话说明 + 该层挂的配置项 key)。
 # 顺序即漏斗顺序。
@@ -52,7 +67,8 @@ def check_future_period(task, ctx):
     if deadline is None:
         return None
     if (int(deadline) - ctx["now"]) > int(interval):
-        return "明天/后天那份,今晚不催"
+        left = int(deadline) - ctx["now"]
+        return f"截止 {to_str(deadline)},还有 {fmt_duration(left)},明天/后天那份今晚不催"
     return None
 
 
@@ -60,7 +76,8 @@ def check_snooze(task, ctx):
     """推迟(snooze)未到点 → 被挡。"""
     snooze_until = task.get("snooze_until")
     if snooze_until and ctx["now"] < int(snooze_until):
-        return "推迟未到点"
+        left = int(snooze_until) - ctx["now"]
+        return f"推迟到 {to_str(snooze_until)},还剩 {fmt_duration(left)}"
     return None
 
 
@@ -70,9 +87,12 @@ def check_cooldown(task, ctx):
     if not last_at:
         return None
     interval = _task_interval(task) or settings.get("cooldown_fallback")
-    cooldown = max(int(interval * settings.get("cooldown_ratio")), 60)   # 至少 60s
-    if (ctx["now"] - int(last_at)) < cooldown:
-        return "刚催过,冷却中"
+    ratio = settings.get("cooldown_ratio")
+    cooldown = max(int(int(interval) * ratio), 60)   # 至少 60s
+    elapsed = ctx["now"] - int(last_at)
+    if elapsed < cooldown:
+        return (f"冷却 {fmt_duration(cooldown)} = 间隔 {fmt_duration(interval)} × 冷却系数 {ratio},"
+                f"已过 {fmt_duration(elapsed)}")
     return None
 
 
