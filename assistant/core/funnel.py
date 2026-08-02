@@ -91,8 +91,8 @@ def check_cooldown(task, ctx):
     cooldown = max(int(int(interval) * ratio), 60)   # 至少 60s
     elapsed = ctx["now"] - int(last_at)
     if elapsed < cooldown:
-        return (f"冷却 {fmt_duration(cooldown)} = 间隔 {fmt_duration(interval)} × 冷却系数 {ratio},"
-                f"已过 {fmt_duration(elapsed)}")
+        return (f"已过 {fmt_duration(elapsed)} / 冷却 {fmt_duration(cooldown)}"
+                f" = 间隔 {fmt_duration(interval)} × 冷却系数 {ratio}")
     return None
 
 

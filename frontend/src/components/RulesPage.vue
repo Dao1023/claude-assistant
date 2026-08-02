@@ -132,7 +132,6 @@ onMounted(load)
 .rules-page {
   padding: 16px 20px 32px;
   overflow: auto;
-  max-width: 640px;
 }
 .page-intro {
   margin: 4px 0 16px;
