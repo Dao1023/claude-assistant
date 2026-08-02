@@ -28,7 +28,22 @@ from pydantic import BaseModel, Field
 
 from ..config import WEB_DIST
 from ..core import actions, queries
+from ..core import settings as settings_mod
 from ..core.timeutil import SECONDS_PER_DAY, to_ts
+
+
+# 只读规则说明(算法/逻辑,不开放编辑),规则页展示用
+READONLY_RULES = [
+    {"title": "重要性引擎",
+     "desc": "start:log(距今秒/预期间隔秒),越久越大;end:-log(剩余天数),越近越大。"},
+    {"title": "档位判定",
+     "desc": "默认「提醒」;end 推满升级档次数升「催办」,start 为其 2 倍;"
+             "end 重要性达危机阈值无视次数直接「紧急」。"},
+    {"title": "优先级",
+     "desc": "end 优先于 start;未来周期 end(剩余>一个周期)今晚不催;过 deadline 的 end 即关闭。"},
+    {"title": "冷却与推迟",
+     "desc": "冷却 = 任务间隔 × 冷却系数;推迟(snooze)未到点优先于冷却,一律不催。"},
+]
 
 
 # ---------- 请求体模型(Pydantic 校验 + 自动文档) ----------
@@ -173,6 +188,28 @@ def create_app() -> FastAPI:
             return actions.do_unsnooze(conn, {"task_id": tid})
         finally:
             conn.close()
+
+    # ---------- 通知规则设置 ----------
+
+    @app.get("/api/settings")
+    def api_get_settings():
+        """全部通知规则:可编辑项(当前值+元信息) + 只读算法说明。"""
+        return {"editable": settings_mod.all(), "readonly": READONLY_RULES}
+
+    @app.put("/api/settings")
+    def api_put_settings(body: dict):
+        """更新一个/多个可编辑规则。未知 key 400,越界 400。"""
+        errors = {}
+        for k, v in body.items():
+            try:
+                settings_mod.set(k, v)
+            except KeyError:
+                errors[k] = "未知规则项"
+            except ValueError as e:
+                errors[k] = str(e)
+        if errors:
+            raise HTTPException(status_code=400, detail=errors)
+        return {"editable": settings_mod.all()}
 
     _mount_static(app)
     return app
