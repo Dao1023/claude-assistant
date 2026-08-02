@@ -41,13 +41,13 @@ def test_detail_start_task(conn):
     assert d["anchor"] == to_str(NOW - 60 * DAY)[:10]
 
 
-def test_detail_end_task_has_countdown_and_recurrence(conn):
+def test_detail_end_task_has_deadline_and_recurrence(conn):
     deadline = NOW + 2 * DAY
     tid = db.add_task(conn, "原神每日", "end", deadline=deadline,
                       recurrence_interval=DAY, priority=5, created=NOW, tags=("genshin",))
     d = queries.task_detail(tid, conn)
     assert d["drive"] == "end"
-    assert d["countdown"].startswith("还剩")
+    assert "countdown" not in d                            # 倒计时文案归前端,后端只给 deadline
     assert d["recurrence_days"] == 1.0                      # 秒 -> 天数
     assert d["deadline"] == to_str(deadline)
     assert "days_since" not in d

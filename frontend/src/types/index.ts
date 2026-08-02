@@ -16,11 +16,10 @@ export interface EndTask {
   id: string
   title: string
   importance: number
-  /** 人话倒计时,如 "还剩 4 小时" / "还剩 2 天" */
-  countdown: string
   /** 重复间隔(天),空=非周期 */
   recurrence_days?: number | null
   tags: string[]
+  /** 'YYYY-MM-DD HH:MM',倒计时由前端据此自算 */
   deadline?: string
 }
 
@@ -53,8 +52,6 @@ export interface TaskDetail {
   created: string
   tags: string[]
   importance: number
-  /** end 类任务的人话倒计时 */
-  countdown?: string
   /** start 类任务的距今天数 */
   days_since?: number
 }

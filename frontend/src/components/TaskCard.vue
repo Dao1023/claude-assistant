@@ -4,7 +4,7 @@ import { computed } from 'vue'
 interface Props {
   title: string
   importance: number
-  /** START: "X 天没做了";DDL: countdown 字符串 */
+  /** START: "X 天没做了";DDL: "还剩 X 天" 倒计时(文案由父组件算好传入) */
   footer: string
   tags: string[]
   /** 主题色,用于左侧竖条 */

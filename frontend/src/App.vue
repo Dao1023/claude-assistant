@@ -60,7 +60,15 @@ function startFooter(task: StartTask): string {
 }
 
 function endFooter(task: EndTask): string {
-  return task.countdown || '无截止时间'
+  // 后端只给 deadline 时间字符串,倒计时文案前端自己算(数据归后端,文案归前端)。
+  if (!task.deadline) return '无截止时间'
+  const secs = Math.floor((new Date(task.deadline.replace(' ', 'T')).getTime() - Date.now()) / 1000)
+  if (secs <= 0) return '已过期'
+  const days = Math.floor(secs / 86400)
+  if (days >= 1) return `还剩 ${days} 天`
+  const h = Math.floor(secs / 3600)
+  if (h >= 1) return `还剩 ${h} 小时`
+  return `还剩 ${Math.floor(secs / 60)} 分钟`
 }
 
 async function load() {
