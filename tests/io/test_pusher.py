@@ -25,6 +25,10 @@ def conn(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "_cache", None)   # 隔离设置缓存,指向测试库
     db.init_db()
     c = db.connect()
+    # 关掉免打扰:夜间窗口置空 + 清临时 DND,让推送行为不依赖跑测试的钟点。
+    # DND 本身的判断由 tests/core/test_funnel.py 专门覆盖。
+    db.set_setting(c, "dnd_night_end", 0)
+    db.set_setting(c, "dnd_until", "")
     yield c
     c.close()
     monkeypatch.setattr(settings, "_cache", None)

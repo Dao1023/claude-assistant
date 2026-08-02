@@ -88,9 +88,11 @@ CREATE TABLE settings (
 );
 ```
 
-> 推送的数值阈值(冷却系数/兜底冷却/升级档次数/危机阈值/轮询间隔/一次最多弹卡)
+> 推送的数值阈值(冷却系数/兜底冷却/升级档次数/危机阈值/轮询间隔/一次最多弹卡/夜间免打扰恢复点)
 > 存这里,由 `core/settings.py` 统一读写(带进程内缓存)。**规则页展示值 = 推送代码
 > 运行值,同源**。算法/逻辑(重要性公式、档位判定)不存表,保持只读。
+> **临时免打扰 `dnd_until` 也存此表,但它是运行时状态不是规则**——不进 SETTINGS
+> 列表(不在规则页渲染成配置行),由 `settings.get/set_dnd_until` 单独读写,到期自动失效。
 
 ## 二、操作接口(Claude Code / 前端 → APP)
 
@@ -111,7 +113,9 @@ CREATE TABLE settings (
 | `GET /api/tasks/{id}/pushes` | — | 提醒记录(倒序) |
 | `GET /api/settings` | `settings.all` | 全部通知规则(可编辑项当前值+元信息 + 只读算法说明) |
 | `PUT /api/settings` | `settings.set` | 更新一个/多个可编辑规则;未知 key / 越界 400 |
-| `GET /api/funnel` | `pusher.pick` | 通知漏斗实时统计:每层筛掉了哪些任务(只算不弹) |
+| `GET /api/funnel` | `pusher.pick` | 通知漏斗实时统计:每层筛掉了哪些任务(只算不弹);含 `dnd` 总闸当前状态 |
+| `PUT /api/dnd` | `settings.set_dnd_until` | 开临时免打扰:传 `until`('YYYY-MM-DD HH:MM' 到期时刻) |
+| `DELETE /api/dnd` | `settings.set_dnd_until(None)` | 立即恢复:清掉临时免打扰 |
 
 ### 各动作的语义(与通道无关)
 
@@ -188,7 +192,7 @@ WHERE g.name = 'genshin';   -- 或 != 'genshin' 隐藏
 - `core/timeutil.py` — 时间转换中枢:内部 Unix 秒 int ↔ 边界字符串/天数互转
 - `core/actions.py` — 任务动作 add/done/update/close/snooze/query + **close_overdue(超时即关闭)**(纯业务,供 HTTP 与催办小卡复用)
 - `core/engine.py` — 重要性引擎:start `log((now-anchor)/expected_duration)`、end `-log(剩余)`,产出两个清单
-- `core/funnel.py` — 通知过滤漏斗:纯函数管线(未来周期/推迟/冷却)+ 定档 + 每层元信息;
+- `core/funnel.py` — 通知过滤漏斗:免打扰总闸(dnd_active)+ 纯函数管线(未来周期/推迟/冷却)+ 定档 + 每层元信息;
   推送(tick_push)与规则页统计(/api/funnel)共用同一条管线,保证展示=真实运行
 - `core/settings.py` — 通知规则配置单一读写口:get/set/all + 元信息 + 缓存(settings 表)
 - `core/queries.py` — 面板数据加工(倒计时/距上次天数/秒→天数/tag)

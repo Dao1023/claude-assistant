@@ -127,11 +127,24 @@ export interface WillPushTask {
   stage: string
 }
 
+/** 免打扰总闸当前状态 */
+export interface DndStatus {
+  /** 此刻是否冻结中(夜间窗口或临时 DND 任一命中) */
+  active: boolean
+  /** 临时 DND 到期时间戳(Unix 秒),无则 null */
+  until: number | null
+  /** until 的人话字符串,供直接显示 */
+  until_str: string | null
+  /** 夜间免打扰恢复到几点(0-23) */
+  night_end: number
+}
+
 /** GET /api/funnel 返回 */
 export interface FunnelResponse {
   layers: FunnelLayer[]
   will_push: WillPushTask[]
   poll_interval: number
+  dnd: DndStatus
 }
 
 /** 新增任务表单(POST /api/tasks)。drive 创建时定死。 */

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { fetchFunnel, fetchRules, updateSettings } from '@/api/client'
+import { clearDnd, fetchFunnel, fetchRules, setDnd, updateSettings } from '@/api/client'
 import type { EditableSetting, FunnelResponse } from '@/types'
 
 const funnel = ref<FunnelResponse | null>(null)
@@ -10,6 +10,8 @@ const loading = ref(false)
 const saving = ref(false)
 const expanded = ref<Record<string, boolean>>({})
 const draft = ref<Record<string, number>>({})
+const dndUntilInput = ref<string>('')   // 临时免打扰到期时刻('YYYY-MM-DD HH:MM')
+const dndOperating = ref(false)
 
 async function load() {
   loading.value = true
@@ -18,6 +20,7 @@ async function load() {
     funnel.value = f
     editable.value = r.editable
     for (const s of r.editable) draft.value[s.key] = s.value
+    dndUntilInput.value = f.dnd.until_str ?? ''
   } catch (err) {
     ElMessage.error(err instanceof Error ? err.message : '加载规则失败')
   } finally {
@@ -40,9 +43,42 @@ async function save() {
   }
 }
 
+async function applyDnd() {
+  if (!dndUntilInput.value) {
+    ElMessage.warning('先选一个免打扰到几点')
+    return
+  }
+  dndOperating.value = true
+  try {
+    await setDnd(dndUntilInput.value)
+    ElMessage.success(`免打扰到 ${dndUntilInput.value}`)
+    await load()
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '设置失败')
+  } finally {
+    dndOperating.value = false
+  }
+}
+
+async function restoreDnd() {
+  dndOperating.value = true
+  try {
+    await clearDnd()
+    ElMessage.success('已恢复提醒')
+    await load()
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '恢复失败')
+  } finally {
+    dndOperating.value = false
+  }
+}
+
 function toggle(id: string) {
   expanded.value[id] = !expanded.value[id]
 }
+
+// 免打扰是总闸,单独在顶部渲染成交互卡片,不进通用层循环
+const flowLayers = computed(() => funnel.value?.layers.filter((l) => l.id !== 'dnd') ?? [])
 
 const STAGE_LABEL: Record<string, string> = {
   gentle: '提醒',
@@ -60,9 +96,54 @@ onMounted(load)
       通过所有层、且排到前面的,才会弹出催办小卡。数字是<strong>此刻</strong>的真实统计。
     </p>
 
+    <!-- 免打扰总闸:整条流水线的开关,置顶 -->
+    <div v-if="funnel" class="dnd-card" :class="{ frozen: funnel.dnd.active }">
+      <div class="dnd-head">
+        <span class="dnd-icon">🌙</span>
+        <span class="dnd-title">免打扰</span>
+        <span v-if="funnel.dnd.active" class="dnd-state frozen">冻结中,一张都不弹</span>
+        <span v-else class="dnd-state clear">畅通</span>
+      </div>
+      <p class="dnd-desc">
+        夜间 0 点到早 {{ funnel.dnd.night_end }} 点自动免打扰;也可手动开到指定时刻。
+        闸一关,下面整条线全停。
+      </p>
+      <div class="dnd-controls">
+        <el-date-picker
+          v-model="dndUntilInput"
+          type="datetime"
+          placeholder="免打扰到几点"
+          format="YYYY-MM-DD HH:mm"
+          value-format="YYYY-MM-DD HH:mm"
+          class="dnd-picker"
+        />
+        <el-button size="small" :loading="dndOperating" @click="applyDnd">开启</el-button>
+        <el-button
+          v-if="funnel.dnd.until"
+          size="small"
+          :loading="dndOperating"
+          @click="restoreDnd"
+        >立即恢复</el-button>
+      </div>
+      <p v-if="funnel.dnd.until_str" class="dnd-current">手动免打扰到 {{ funnel.dnd.until_str }}</p>
+      <!-- 夜间恢复点配置(挂在 dnd 层,但 dnd 层不通用渲染,故在此单独放) -->
+      <div class="setting-row dnd-night">
+        <span class="setting-label">夜间免打扰到</span>
+        <el-input-number
+          v-model="draft['dnd_night_end']"
+          :min="0"
+          :max="23"
+          :step="1"
+          controls-position="right"
+          class="setting-input"
+        />
+        <span class="setting-unit">点(0 = 关闭夜间免打扰)</span>
+      </div>
+    </div>
+
     <!-- 漏斗各层 -->
     <div v-if="funnel" class="funnel">
-      <div v-for="(layer, i) in funnel.layers" :key="layer.id" class="layer-wrap">
+      <div v-for="(layer, i) in flowLayers" :key="layer.id" class="layer-wrap">
         <div class="layer-card">
           <div class="layer-head" @click="toggle(layer.id)">
             <span class="layer-idx">{{ i + 1 }}</span>
@@ -105,7 +186,7 @@ onMounted(load)
             </div>
           </div>
         </div>
-        <div v-if="i < funnel.layers.length - 1" class="layer-arrow">↓</div>
+        <div v-if="i < flowLayers.length - 1" class="layer-arrow">↓</div>
       </div>
     </div>
 
@@ -142,6 +223,65 @@ onMounted(load)
 .funnel {
   display: flex;
   flex-direction: column;
+}
+.dnd-card {
+  background: #fff;
+  border: 1px solid #eceef3;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.dnd-card.frozen {
+  background: #f4f6fb;
+  border-color: #c9d6ec;
+}
+.dnd-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dnd-icon {
+  font-size: 16px;
+}
+.dnd-title {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+.dnd-state {
+  font-size: 12px;
+  margin-left: 4px;
+}
+.dnd-state.frozen {
+  color: #5b9bd5;
+}
+.dnd-state.clear {
+  color: #67c23a;
+}
+.dnd-desc {
+  margin: 8px 0 0 24px;
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.6;
+}
+.dnd-controls {
+  margin: 10px 0 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dnd-picker {
+  width: 200px;
+}
+.dnd-current {
+  margin: 8px 0 0 24px;
+  font-size: 12px;
+  color: #5b9bd5;
+}
+.dnd-night {
+  margin: 10px 0 0 24px;
 }
 .layer-wrap {
   display: flex;

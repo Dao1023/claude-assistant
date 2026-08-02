@@ -118,3 +118,34 @@ def test_stage_escalates_after_enough_nags():
 def test_stage_crisis_when_close():
     t = _task("end", deadline=NOW + 3600)        # 1 小时后截止,重要性 >= 危机阈值
     assert funnel.stage(t, 0) == "crisis"
+
+
+# ---------- 免打扰总闸(dnd_active)----------
+
+def _at(hour, minute=0):
+    """今天指定时刻的 Unix 秒。"""
+    from datetime import datetime
+    d = datetime.now().replace(hour=hour, minute=minute, second=0, microsecond=0)
+    return int(d.timestamp())
+
+
+def test_dnd_manual_until_blocks_then_clear_restores():
+    settings.set("dnd_night_end", 0)               # 关掉夜间窗口,隔离出手动 DND 的效果
+    settings.set_dnd_until(NOW + 3600)             # 手动免打扰 1 小时
+    assert funnel.dnd_active(NOW) is not None      # 命中
+    assert funnel.dnd_active(NOW + 7200) is None   # 过期自动恢复
+    settings.set_dnd_until(NOW + 3600)
+    settings.set_dnd_until(None)                   # 立即恢复
+    assert funnel.dnd_active(NOW) is None
+
+
+def test_dnd_night_window():
+    settings.set("dnd_night_end", 8)
+    assert funnel.dnd_active(_at(3)) is not None   # 凌晨 3 点:冻结
+    assert funnel.dnd_active(_at(12)) is None      # 中午:畅通
+    assert funnel.dnd_active(_at(23)) is None      # 23 点:不跨天,夜间仅 0~8 点
+
+
+def test_dnd_night_end_zero_disables_night():
+    settings.set("dnd_night_end", 0)               # 0 点恢复 = 夜间窗口为空
+    assert funnel.dnd_active(_at(3)) is None

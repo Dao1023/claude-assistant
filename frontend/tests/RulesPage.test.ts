@@ -14,6 +14,8 @@ vi.mock('@/api/client', () => ({
   fetchFunnel: vi.fn(),
   fetchRules: vi.fn(),
   updateSettings: vi.fn(),
+  setDnd: vi.fn(),
+  clearDnd: vi.fn(),
 }))
 
 import { fetchFunnel, fetchRules } from '@/api/client'
@@ -21,6 +23,10 @@ import RulesPage from '@/components/RulesPage.vue'
 
 const FUNNEL: FunnelResponse = {
   layers: [
+    { id: 'dnd', label: '免打扰', desc: '总闸', blocked_count: 0, blocked_tasks: [],
+      settings: [
+        { key: 'dnd_night_end', value: 8, type: 'int', unit: '点', label: '夜间免打扰到', desc: '', min: 0, max: 23 },
+      ] },
     { id: 'future_period', label: '未来周期', desc: '明天那份今晚不催', blocked_count: 1,
       blocked_tasks: [{ id: 'a', title: '明日原神', reason: '明天/后天那份' }], settings: [] },
     { id: 'snooze', label: '推迟中', desc: '点了稍后', blocked_count: 0, blocked_tasks: [], settings: [] },
@@ -40,6 +46,7 @@ const FUNNEL: FunnelResponse = {
   ],
   will_push: [{ id: 'x', title: '今日原神', stage: 'crisis' }],
   poll_interval: 30,
+  dnd: { active: false, until: null, until_str: null, night_end: 8 },
 }
 
 const RULES: RulesResponse = {
@@ -50,6 +57,7 @@ const RULES: RulesResponse = {
     { key: 'crisis_importance', value: 1.0, type: 'float', unit: '', label: '危机重要性阈值', desc: '', min: 0, max: 5 },
     { key: 'poll_interval', value: 30, type: 'int', unit: '秒', label: '轮询间隔', desc: '', min: 5, max: 600 },
     { key: 'max_concurrent', value: 1, type: 'int', unit: '张', label: '一次最多弹卡', desc: '', min: 1, max: 5 },
+    { key: 'dnd_night_end', value: 8, type: 'int', unit: '点', label: '夜间免打扰到', desc: '', min: 0, max: 23 },
   ],
   readonly: [],
 }
@@ -117,5 +125,24 @@ describe('RulesPage(通知漏斗)', () => {
     mockFunnel.mockRejectedValue(new Error('请求失败:500'))
     const wrapper = await mountPage()
     expect(wrapper.find('.rules-page').exists()).toBe(true)
+  })
+
+  it('免打扰总闸:畅通时显示畅通,无「立即恢复」', async () => {
+    mockFunnel.mockResolvedValue(FUNNEL)
+    const wrapper = await mountPage()
+    expect(wrapper.find('.dnd-card').exists()).toBe(true)
+    expect(wrapper.text()).toContain('畅通')
+    expect(wrapper.text()).not.toContain('立即恢复')
+  })
+
+  it('免打扰总闸:临时 DND 生效时显示冻结与恢复入口', async () => {
+    mockFunnel.mockResolvedValue({
+      ...FUNNEL,
+      dnd: { active: true, until: 1999999999, until_str: '2033-05-18 08:00', night_end: 8 },
+    })
+    const wrapper = await mountPage()
+    expect(wrapper.text()).toContain('冻结中')
+    expect(wrapper.text()).toContain('立即恢复')
+    expect(wrapper.text()).toContain('2033-05-18 08:00')
   })
 })

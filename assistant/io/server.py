@@ -77,6 +77,10 @@ class SnoozeIn(BaseModel):
     until: Optional[str] = None        # 推迟到此时间('YYYY-MM-DD HH:MM'),缺省 1 小时
 
 
+class DndIn(BaseModel):
+    until: str                       # 临时免打扰到此时间('YYYY-MM-DD HH:MM')
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="Claude Assistant")
 
@@ -247,8 +251,29 @@ def create_app() -> FastAPI:
         # 通过所有过滤、本轮将弹出的任务(在「定档位」层展示)
         will_push = [{"id": t["id"], "title": t["title"], "stage": stage}
                      for t, stage, _ in picked]
+        # 免打扰总闸当前状态(供规则页顶部卡片展示/操作)
+        from ..core.timeutil import now_ts, to_str
+        dnd_until = settings_mod.get_dnd_until()
+        dnd = {
+            "active": funnel.dnd_active(now_ts()) is not None,
+            "until": dnd_until,                       # 临时 DND 到期时间戳,无则 None
+            "until_str": to_str(dnd_until),           # 人话,供直接显示
+            "night_end": settings_mod.get("dnd_night_end"),
+        }
         return {"layers": layers, "will_push": will_push,
-                "poll_interval": settings_mod.get("poll_interval")}
+                "poll_interval": settings_mod.get("poll_interval"), "dnd": dnd}
+
+    @app.put("/api/dnd")
+    def api_dnd_set(body: DndIn):
+        """开临时免打扰:传 until('YYYY-MM-DD HH:MM' 到期时刻)。返回当前 until 时间戳。"""
+        settings_mod.set_dnd_until(to_ts(body.until))
+        return {"until": settings_mod.get_dnd_until()}
+
+    @app.delete("/api/dnd")
+    def api_dnd_clear():
+        """立即恢复:清掉临时免打扰。"""
+        settings_mod.set_dnd_until(None)
+        return {"until": None}
 
     _mount_static(app)
     return app

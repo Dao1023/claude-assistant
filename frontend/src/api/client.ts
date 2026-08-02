@@ -145,3 +145,23 @@ export async function fetchFunnel(): Promise<FunnelResponse> {
   }
   return (await res.json()) as FunnelResponse
 }
+
+/** 开临时免打扰。until 为 'YYYY-MM-DD HH:MM' 到期时刻。 */
+export async function setDnd(until: string): Promise<void> {
+  const res = await fetch('/api/dnd', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ until }),
+  })
+  if (!res.ok) {
+    throw new Error(`设置失败:${res.status} ${res.statusText}`)
+  }
+}
+
+/** 立即恢复:清掉临时免打扰。 */
+export async function clearDnd(): Promise<void> {
+  const res = await fetch('/api/dnd', { method: 'DELETE' })
+  if (!res.ok) {
+    throw new Error(`恢复失败:${res.status} ${res.statusText}`)
+  }
+}

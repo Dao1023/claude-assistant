@@ -20,6 +20,8 @@ SETTINGS = [
      "调度循环每隔多久检查一次该不该催。", 5, 600),
     ("max_concurrent", 1, "int", "张", "一次最多弹卡",
      "同一轮最多弹出几张催办小卡。", 1, 5),
+    ("dnd_night_end", 8, "int", "点", "夜间免打扰到",
+     "每天 0:00 到这个点之前不弹卡(夜猫子默认,无需设开始)。", 0, 23),
 ]
 
 _BY_KEY = {s[0]: s for s in SETTINGS}
@@ -78,3 +80,32 @@ def all():
     return [{"key": k, "value": get(k), "type": s[2], "unit": s[3],
              "label": s[4], "desc": s[5], "min": s[6], "max": s[7]}
             for s in SETTINGS for k in (s[0],)]
+
+
+# ---- 临时免打扰状态(dnd_until)----
+# 这是「运行时状态」不是「规则」,故不进 SETTINGS(不在规则页渲染成配置行),
+# 直接走 db 键值表。有明确到期时刻,过期自动失效。
+
+def get_dnd_until():
+    """临时免打扰的到期时间戳(Unix 秒);未设置 → None。"""
+    try:
+        conn = db.connect()
+        try:
+            raw = db.get_setting(conn, "dnd_until")
+        finally:
+            conn.close()
+    except Exception:
+        return None
+    return int(raw) if raw else None
+
+
+def set_dnd_until(until):
+    """设临时免打扰到期时刻(Unix 秒);传 None 清除(立即恢复)。"""
+    conn = db.connect()
+    try:
+        if until is None:
+            db.set_setting(conn, "dnd_until", "")
+        else:
+            db.set_setting(conn, "dnd_until", int(until))
+    finally:
+        conn.close()

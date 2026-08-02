@@ -47,6 +47,14 @@ def pick(conn, now=None):
     limit = settings.get("max_concurrent")
 
     picked, blocked = [], {}
+
+    # 免打扰总闸:夜间或手动 DND 命中 → 整条线冻结,所有任务挡在 dnd 层
+    dnd_reason = funnel.dnd_active(now)
+    if dnd_reason is not None:
+        for task in ends + starts:
+            blocked.setdefault("dnd", []).append((task, dnd_reason))
+        return picked, blocked
+
     survivors = []
     for task in ends + starts:                       # end 优先,再 start(均已排序)
         nag_count, last_at = db.push_stats(conn, task["id"])

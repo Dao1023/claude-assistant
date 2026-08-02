@@ -31,6 +31,9 @@ def fmt_duration(seconds):
 # 每层元信息:供规则页渲染(人话说明 + 该层挂的配置项 key)。
 # 顺序即漏斗顺序。
 LAYERS = [
+    {"id": "dnd", "label": "免打扰",
+     "desc": "总闸:夜间(0 点到设定点)或你手动开了免打扰,整条线冻结,一张都不弹。",
+     "setting_keys": ["dnd_night_end"]},
     {"id": "future_period", "label": "未来周期",
      "desc": "周期任务是「明天/后天那份」(剩余超过一个周期),今晚不催,等轮到它。",
      "setting_keys": []},
@@ -54,6 +57,25 @@ def _task_interval(task):
     if task["drive"] == "start":
         return task.get("expected_duration")
     return task.get("recurrence_interval")
+
+
+def dnd_active(now):
+    """免打扰总闸:命中返回原因 str,畅通返回 None。
+
+    两个来源,任一命中即冻结整条流水线(不是单任务过滤,故在 pick() 顶部调,
+    不进单任务管线 run_pipe):
+    - 夜间:每天 0 点到 dnd_night_end 点之间(夜猫子默认,不跨天)。
+    - 临时:手动开了免打扰,now < dnd_until(到期自动恢复)。
+    """
+    from datetime import datetime
+    until = settings.get_dnd_until()
+    if until and now < until:
+        return f"手动免打扰到 {to_str(until)},还剩 {fmt_duration(until - now)}"
+    night_end = settings.get("dnd_night_end")
+    hour = datetime.fromtimestamp(int(now)).hour
+    if hour < night_end:
+        return f"夜间免打扰(0~{night_end} 点),现在 {hour} 点"
+    return None
 
 
 def check_future_period(task, ctx):
