@@ -93,6 +93,16 @@ function toggleSnooze(id: string) {
   expandedSnooze.value[id] = !expandedSnooze.value[id]
 }
 
+/** 关闭按钮:优先调 pywebview js_api 隐藏(显式桥,可靠);兜底 window.close()。 */
+function hideWindow() {
+  const api = (window as unknown as { pywebview?: { api?: { hide?: () => void } } }).pywebview?.api
+  if (api?.hide) {
+    api.hide()
+  } else {
+    window.close()
+  }
+}
+
 /** 全部稍后:开 1 小时临时免打扰(复用 DND 总闸),用户随手关窗即可。 */
 async function snoozeAll() {
   dndBusy.value = true
@@ -125,6 +135,7 @@ onUnmounted(() => {
     <div class="np-head">
       <span class="np-title">🔔 待办</span>
       <span v-if="tasks.length" class="np-count">{{ tasks.length }}</span>
+      <button class="np-close" title="隐藏(有通知再弹)" @click="hideWindow">×</button>
     </div>
 
     <div v-if="!tasks.length" class="np-empty">
@@ -209,6 +220,22 @@ onUnmounted(() => {
   font-size: 11px;
   border-radius: 10px;
   padding: 1px 7px;
+}
+.np-close {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: #909399;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-family: inherit;
+}
+.np-close:hover {
+  background: #eceff3;
+  color: #555;
 }
 .np-empty {
   flex: 1;

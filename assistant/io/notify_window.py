@@ -71,6 +71,17 @@ def _on_closing():
     return False                     # 阻止默认关闭(销毁)
 
 
+class _JsApi:
+    """暴露给前端 JS 的接口:浮窗页面的 × 按钮调它隐藏窗口。
+
+    比 window.close() 可靠:pywebview 的 js_api 是显式桥,不依赖
+    frameless 下 close 的不确定行为。前端 window.pywebview.api.hide()。
+    """
+    def hide(self):
+        if _win is not None:
+            _win.hide()
+
+
 def start_ui():
     """主线程入口:建常驻浮窗(先隐藏)+ 起 GUI 循环(阻塞)。
 
@@ -83,6 +94,7 @@ def start_ui():
         width=_W, height=_H, x=x, y=y,
         frameless=True, on_top=True, easy_drag=True,
         resizable=False, shadow=True, hidden=True,   # 启动先隐藏,有通知才 show
+        js_api=_JsApi(),
     )
     _win.events.closing += _on_closing
     _ready.set()
