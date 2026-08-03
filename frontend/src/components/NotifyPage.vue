@@ -1,17 +1,16 @@
 <script setup lang="ts">
 /**
- * 通知浮窗页(/notify):pywebview 无框置顶窗的内容,列出当前该催的任务。
+ * 通知浮窗页(/notify):pywebview 无框置顶窗的内容,列出通知层推来的任务。
  *
- * 与面板同一份前端代码,但形态不同:无导航、滚动列表、即点即处理。
- * 数据来自 /api/funnel 的 will_push(与真实推送同源,保证「弹的就是该催的」)。
- * 按钮走已测过的 REST API(完成/稍后带留言);底部「全部稍后」复用临时免打扰。
- * 处理完一个就重拉;空了就提示——浮窗由用户随手关掉(easy_drag 可拖)。
+ * 被动响应:不主动查询、不轮询。经 WebSocket 订阅 /ws,收「notify」事件
+ * (通知层 tick_push 挑好后推来的快照)就渲染;收「done/snooze」把对应项移除。
+ * 用户点完成/推迟走 REST 回写,后端再经 WS 广播,各端同步。空了就提示可关窗。
+ * 与通知层解耦:它不知道什么是冷却/定档,只渲染被推来的快照。
  */
 import { onMounted, onUnmounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   doneTask,
-  fetchFunnel,
   fetchSnoozeOptions,
   setDnd,
   snoozeTask,
@@ -24,7 +23,6 @@ const notes = ref<Record<string, string>>({})        // 每卡的留言草稿
 const expandedSnooze = ref<Record<string, boolean>>({})
 const busy = ref<Record<string, boolean>>({})
 const dndBusy = ref(false)
-const loaded = ref(false)
 
 const STAGE_LABEL: Record<string, string> = {
   gentle: '提醒',
@@ -32,23 +30,44 @@ const STAGE_LABEL: Record<string, string> = {
   crisis: '紧急',
 }
 
-async function load() {
-  try {
-    const f = await fetchFunnel()
-    tasks.value = f.will_push
-  } catch (err) {
-    ElMessage.error(err instanceof Error ? err.message : '加载失败')
-  } finally {
-    loaded.value = true
+let ws: WebSocket | null = null
+let retryTimer: number | undefined
+
+function connect() {
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
+  ws = new WebSocket(`${proto}://${window.location.host}/ws`)
+  ws.onmessage = (e) => {
+    try {
+      handle(JSON.parse(e.data))
+    } catch { /* 忽略坏消息 */ }
   }
+  ws.onclose = () => {
+    // 断线重连(服务重启/浮窗重开时)
+    retryTimer = window.setTimeout(connect, 2000)
+  }
+}
+
+function handle(ev: { type: string; tasks?: WillPushTask[]; task_id?: string }) {
+  if (ev.type === 'notify' && ev.tasks) {
+    // 通知层推来新一轮快照:并集加入(已存在的保留其留言草稿)
+    for (const t of ev.tasks) {
+      if (!tasks.value.some((x) => x.id === t.id)) tasks.value.push(t)
+    }
+  } else if ((ev.type === 'done' || ev.type === 'snooze') && ev.task_id) {
+    remove(ev.task_id)
+  }
+}
+
+function remove(id: string) {
+  tasks.value = tasks.value.filter((t) => t.id !== id)
 }
 
 async function onDone(t: WillPushTask) {
   busy.value[t.id] = true
   try {
     await doneTask(t.id, notes.value[t.id]?.trim() || undefined)
+    remove(t.id)                      // 本地先移除;后端 WS 广播再兜底同步
     ElMessage.success(`已完成「${t.title}」`)
-    await load()
   } catch (err) {
     ElMessage.error(err instanceof Error ? err.message : '操作失败')
   } finally {
@@ -61,8 +80,8 @@ async function onSnooze(t: WillPushTask, until?: string | number) {
   try {
     await snoozeTask(t.id, until, notes.value[t.id]?.trim() || undefined)
     expandedSnooze.value[t.id] = false
+    remove(t.id)
     ElMessage.success(`已推迟「${t.title}」`)
-    await load()
   } catch (err) {
     ElMessage.error(err instanceof Error ? err.message : '操作失败')
   } finally {
@@ -91,14 +110,14 @@ async function snoozeAll() {
   }
 }
 
-// 每 30s 轻刷一次,跟着调度节奏;窗口关了就停了,无需精确
-let timer: number | undefined
-onMounted(async () => {
-  await load()
+onMounted(() => {
+  connect()
   fetchSnoozeOptions().then((r) => (options.value = r.options)).catch(() => {})
-  timer = window.setInterval(load, 30000)
 })
-onUnmounted(() => window.clearInterval(timer))
+onUnmounted(() => {
+  window.clearTimeout(retryTimer)
+  ws?.close()
+})
 </script>
 
 <template>
@@ -108,7 +127,7 @@ onUnmounted(() => window.clearInterval(timer))
       <span v-if="tasks.length" class="np-count">{{ tasks.length }}</span>
     </div>
 
-    <div v-if="loaded && !tasks.length" class="np-empty">
+    <div v-if="!tasks.length" class="np-empty">
       这会儿没有该催的了 🎉<br />可以关掉这个窗口
     </div>
 

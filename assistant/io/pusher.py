@@ -7,7 +7,7 @@
 """
 from ..core import actions, db, funnel, settings
 from ..core.timeutil import now_ts, to_str
-from . import notify_window
+from . import events, notify_window
 
 
 def _now():
@@ -78,6 +78,11 @@ def tick_push():
 
     if picked:
         notify_window.show()
+        # 推给浮窗:通知层把「这次该催谁」作为事件快照推给订阅者,弹窗被动接收、不查询
+        events.publish("notify", tasks=[
+            {"id": t["id"], "title": t["title"], "stage": stage}
+            for t, stage, _n in picked
+        ])
         for _t, stage, _n in picked:
             print(f"[{to_str(now)}] 触发浮窗: [{stage}] {_t['title']}")
     return len(picked)

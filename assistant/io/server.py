@@ -21,7 +21,7 @@
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -30,6 +30,7 @@ from ..config import WEB_DIST
 from ..core import actions, funnel, queries
 from ..core import settings as settings_mod
 from ..core.timeutil import SECONDS_PER_DAY, now_ts, to_ts
+from . import events
 
 
 # 只读规则说明(算法/逻辑,不开放编辑),规则页展示用
@@ -163,6 +164,7 @@ def create_app() -> FastAPI:
             if not result.get("error"):
                 queries.db.log_push(conn, tid, now_ts(), "done",
                                     response="done", note=(body.note if body else None))
+                events.publish("done", task_id=tid)
             return result
         finally:
             conn.close()
@@ -183,7 +185,9 @@ def create_app() -> FastAPI:
         note = body.note if body else None
         conn = queries.db.connect()
         try:
-            return actions.do_snooze(conn, {"task_id": tid, "until": until, "note": note})
+            result = actions.do_snooze(conn, {"task_id": tid, "until": until, "note": note})
+            events.publish("snooze", task_id=tid, until=result.get("until"))
+            return result
         finally:
             conn.close()
 
@@ -277,13 +281,28 @@ def create_app() -> FastAPI:
     def api_dnd_set(body: DndIn):
         """开临时免打扰:传 until('YYYY-MM-DD HH:MM' 到期时刻)。返回当前 until 时间戳。"""
         settings_mod.set_dnd_until(to_ts(body.until))
-        return {"until": settings_mod.get_dnd_until()}
+        until = settings_mod.get_dnd_until()
+        events.publish("dnd", until=until)
+        return {"until": until}
 
     @app.delete("/api/dnd")
     def api_dnd_clear():
         """立即恢复:清掉临时免打扰。"""
         settings_mod.set_dnd_until(None)
+        events.publish("dnd", until=None)
         return {"until": None}
+
+    @app.websocket("/ws")
+    async def ws(ws: WebSocket):
+        """事件推送通道:浮窗/未来 AI 订阅,被动接收 notify/done/snooze/dnd 等事件。"""
+        await events.register(ws)
+        try:
+            while True:
+                await ws.receive_text()      # 客户端目前不主动发,只保活/收断开
+        except WebSocketDisconnect:
+            pass
+        finally:
+            events.unregister(ws)
 
     _mount_static(app)
     return app
