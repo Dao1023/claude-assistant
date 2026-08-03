@@ -128,13 +128,14 @@ def do_close(conn, p):
 
 def do_snooze(conn, p):
     """推迟任务。p 可带 until(Unix 秒,绝对时间点);缺省按 1 小时。
+    p 可带 note(用户留言:为什么推迟),记入 push_log。
 
     写 push_log + 记 tasks.snooze_until,冷却判断统一读 snooze_until(见 pusher)。
     """
     tid = p["task_id"]
     until = p.get("until") or (now() + 3600)
     db.set_snooze(conn, tid, until)
-    db.log_push(conn, tid, now(), "snoozed", response="snoozed")
+    db.log_push(conn, tid, now(), "snoozed", response="snoozed", note=p.get("note"))
     return {"task_id": tid, "snoozed": True, "until": until}
 
 

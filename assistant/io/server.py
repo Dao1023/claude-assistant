@@ -29,7 +29,7 @@ from pydantic import BaseModel, Field
 from ..config import WEB_DIST
 from ..core import actions, funnel, queries
 from ..core import settings as settings_mod
-from ..core.timeutil import SECONDS_PER_DAY, to_ts
+from ..core.timeutil import SECONDS_PER_DAY, now_ts, to_ts
 
 
 # 只读规则说明(算法/逻辑,不开放编辑),规则页展示用
@@ -75,6 +75,11 @@ class UpdateTaskIn(BaseModel):
 
 class SnoozeIn(BaseModel):
     until: Optional[str] = None        # 推迟到此时间('YYYY-MM-DD HH:MM'),缺省 1 小时
+    note: Optional[str] = None         # 留言:为什么推迟
+
+
+class DoneIn(BaseModel):
+    note: Optional[str] = None         # 留言:完成备注
 
 
 class DndIn(BaseModel):
@@ -150,11 +155,15 @@ def create_app() -> FastAPI:
             conn.close()
 
     @app.post("/api/tasks/{tid}/done")
-    def api_done(tid: str):
+    def api_done(tid: str, body: Optional[DoneIn] = None):
         _require_task(tid)
         conn = queries.db.connect()
         try:
-            return actions.do_done(conn, {"task_id": tid})
+            result = actions.do_done(conn, {"task_id": tid})
+            if not result.get("error"):
+                queries.db.log_push(conn, tid, now_ts(), "done",
+                                    response="done", note=(body.note if body else None))
+            return result
         finally:
             conn.close()
 
@@ -171,9 +180,10 @@ def create_app() -> FastAPI:
     def api_snooze(tid: str, body: Optional[SnoozeIn] = None):
         _require_task(tid)
         until = to_ts(body.until) if body and body.until else None
+        note = body.note if body else None
         conn = queries.db.connect()
         try:
-            return actions.do_snooze(conn, {"task_id": tid, "until": until})
+            return actions.do_snooze(conn, {"task_id": tid, "until": until, "note": note})
         finally:
             conn.close()
 
