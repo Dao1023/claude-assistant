@@ -20,7 +20,7 @@ import webview
 
 from ..config import WEB_PORT
 
-_W, _H = 380, 520          # 浮窗尺寸(无框,内容自适应滚动)
+_W, _H = 720, 560          # 浮窗尺寸(无框,两列:AI 对话 + 待办,内容自适应滚动)
 _MARGIN = 16
 
 _requests = queue.Queue()  # 跨线程开窗信号(内容无需携带,前端拉数据)

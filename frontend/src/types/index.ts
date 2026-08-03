@@ -147,6 +147,26 @@ export interface FunnelResponse {
   dnd: DndStatus
 }
 
+/** AI 调用过程日志一条(JSONL)。kind: observe/silent/speak/llm_error/user_reply/error */
+export interface AiLogEntry {
+  ts: number
+  kind: string
+  /** observe: 触发事件 + 喂给模型的 prompt */
+  trigger?: Record<string, unknown>
+  prompt?: string
+  memory_size?: number
+  /** speak: 开口内容 */
+  text?: string
+  /** silent/llm_error/error 的补充说明 */
+  reason?: string
+  error?: string
+}
+
+/** GET /api/ai/log 返回(倒序,最新在前) */
+export interface AiLogResponse {
+  entries: AiLogEntry[]
+}
+
 /** 新增任务表单(POST /api/tasks)。drive 创建时定死。 */
 export interface AddTaskPayload {
   title: string

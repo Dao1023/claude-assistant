@@ -87,6 +87,10 @@ class DndIn(BaseModel):
     until: str                       # 临时免打扰到此时间('YYYY-MM-DD HH:MM')
 
 
+class AiReplyIn(BaseModel):
+    text: str                        # 用户在浮窗回 AI 的话
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="Claude Assistant")
 
@@ -158,13 +162,15 @@ def create_app() -> FastAPI:
     @app.post("/api/tasks/{tid}/done")
     def api_done(tid: str, body: Optional[DoneIn] = None):
         _require_task(tid)
+        note = body.note if body else None
         conn = queries.db.connect()
         try:
             result = actions.do_done(conn, {"task_id": tid})
             if not result.get("error"):
+                title = _task_title(conn, tid)
                 queries.db.log_push(conn, tid, now_ts(), "done",
-                                    response="done", note=(body.note if body else None))
-                events.publish("done", task_id=tid)
+                                    response="done", note=note)
+                events.publish("done", task_id=tid, title=title, note=note)
             return result
         finally:
             conn.close()
@@ -186,7 +192,8 @@ def create_app() -> FastAPI:
         conn = queries.db.connect()
         try:
             result = actions.do_snooze(conn, {"task_id": tid, "until": until, "note": note})
-            events.publish("snooze", task_id=tid, until=result.get("until"))
+            events.publish("snooze", task_id=tid, until=result.get("until"),
+                           title=_task_title(conn, tid), note=note)
             return result
         finally:
             conn.close()
@@ -292,6 +299,21 @@ def create_app() -> FastAPI:
         events.publish("dnd", until=None)
         return {"until": None}
 
+    # ---------- AI 层(第四层) ----------
+
+    @app.get("/api/ai/log")
+    def api_ai_log(limit: int = 100):
+        """AI 调用过程日志(供浮窗「AI 看了啥」展示)。倒序,最新在前。"""
+        from . import agent as agent_mod
+        return {"entries": agent_mod.read_log(limit)}
+
+    @app.post("/api/ai/reply")
+    def api_ai_reply(body: AiReplyIn):
+        """用户在浮窗回 AI 一句:转发给 Agent 接话。"""
+        from . import agent as agent_mod
+        agent_mod.get_agent().reply(body.text)
+        return {"ok": True}
+
     @app.websocket("/ws")
     async def ws(ws: WebSocket):
         """事件推送通道:浮窗/未来 AI 订阅,被动接收 notify/done/snooze/dnd 等事件。"""
@@ -323,6 +345,12 @@ def _require_task(tid: str):
             raise HTTPException(status_code=404, detail="任务不存在")
     finally:
         conn.close()
+
+
+def _task_title(conn, tid: str):
+    """取任务标题(供事件携带,让 AI 订阅者免回查)。任务没了则 None。"""
+    task = queries.db.get_task(conn, tid)
+    return task["title"] if task else None
 
 
 def _mount_static(app: FastAPI):

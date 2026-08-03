@@ -151,16 +151,32 @@ $0.0028 / $0.14 每百万 token)。命中要求字面级完整复用前缀单元
 
 第四层分阶段落地,每步独立可测、可交付:
 
-- [ ] **A. 抽象 + 管道**:`LLMBackend` 接口 + `Mock` 实现;`Agent` 常驻线程订阅
-  总线攒上下文。先把"旁观 → 判断 → 说话"管道打通,不接真模型。
-- [ ] **B. 事件 + UI**:总线加 `ai_message` 事件类型;浮窗加气泡 + 输入框。
-  跑通"推迟 3 次 → 气泡冒一句『这个卡了三回了,是遇到什么坎了吗?』"。
-- [ ] **C. 接真模型**:`CloudAPI(base_url, key)` 实现,接 DeepSeek;配置化切换。
+- [x] **A. 抽象 + 管道**:`LLMBackend` 接口(`io/llm.py`);`Agent` 常驻线程订阅
+  总线攒上下文。「旁观 → 判断 → 说话」管道已通。
+- [x] **B. 事件 + UI**:总线 `ai_message` 事件;浮窗两列——左 AI 对话(气泡 + 调用过程
+  「AI 看了啥」+ 回复框),右待办通知。
+- [x] **C. 接真模型**:`DeepSeekBackend`(httpx 直连 Anthropic 兼容端点,key 读
+  data/key.md,不进 git);配置化切换。已实测连通。
 - [ ] **D. 记忆与上下文管理**:按上「工程细节」落地——分层 prompt 吃缓存、三层记忆、
-  滚动摘要压缩、命中率监控。
+  滚动摘要压缩、命中率监控。(当前:工作记忆 JSON 持久化 + 对话上下文截断;语义记忆
+  画像、滚动摘要待做)
 - [ ] **E. 更主动**:每日复盘、主动规划、识别长期模式(周报式洞察)。
 
-> 当前进度:前三层(事件/通知/弹窗)与事件总线已建成,AI 层待启动(A 起步)。
+> 当前进度:A~C 已落地——Agent 常驻旁观事件流,用 DeepSeek 判断该不该开口,开口即
+> 浮窗左列冒气泡,用户可回话;全程调用过程可见。D(记忆压缩/画像/缓存监控)待做。
+
+### AI 层实现落位(现状)
+
+- `io/llm.py` — `LLMBackend` 协议 + `DeepSeekBackend`(真)+ `MockBackend`(测试);
+  `load_key_config()` 从 data/key.md 读端点/key/模型(文件在 .gitignore)。
+- `io/agent.py` — `Agent`:subscribe_local 订阅总线(事件进 queue,daemon 线程消费);
+  工作记忆 JSON 持久化(agent_memory.json);snooze/done 触发 judge;开口 publish
+  ai_message;调用过程写 JSONL(agent_log.jsonl)供「AI 看了啥」。
+- `io/events.py` — `subscribe_local(fn)` 本地订阅(同进程直调,Agent 用)与 WS 广播
+  (浮窗用)双通道;publish 打 ts,本地订阅与 WS 解耦(无浮窗在线 Agent 也照收)。
+- `io/server.py` — `/api/ai/log`(调用过程)、`/api/ai/reply`(用户回话);
+  done/snooze 事件带 title + note(AI 免回查)。
+- 浮窗 `NotifyPage.vue` — 两列:左 AI 对话(chat 流 + 调用过程展开 + 回复框),右待办。
 
 ### 定位:为什么不用 OpenClaw,而是自己造
 

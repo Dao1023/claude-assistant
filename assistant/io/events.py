@@ -6,7 +6,12 @@
 
 跨线程桥:uvicorn 在子线程跑自己的 asyncio 循环;tick_push 在调度线程。
 publish 从任意线程调用,经 loop.call_soon_threadsafe 转给 uvicorn 的循环去广播,
-线程安全。事件是普通 dict:{type, ...payload},JSON 可序列化。
+线程安全。事件是普通 dict:{type, ts, ...payload},JSON 可序列化。
+
+两种订阅者:
+- WebSocket 订阅者(浮窗、外部):跨进程/跨网络,走 /ws 广播。
+- 本地订阅者(AI Agent):同进程,经 subscribe_local 注册回调,publish 时同步直调,
+  零网络开销。回调在 publish 方线程里跑,务必只丢 queue 别干重活。
 
 属于 io 层:只管「把事件送达订阅者」,不含业务判断。
 """
@@ -14,9 +19,27 @@ import asyncio
 import json
 import threading
 
+from ..core.timeutil import now_ts
+
 _clients = set()          # 已连接的 WebSocket(fastapi.WebSocket)
+_local_subs = []          # 本地订阅回调 fn(event: dict),同进程直调(如 AI Agent)
 _loop = None              # uvicorn 的 asyncio 循环(在 /ws 首次连接时捕获)
 _lock = threading.Lock()
+
+
+def subscribe_local(fn):
+    """注册本地订阅者(AI Agent):publish 时同步调 fn(event)。
+
+    fn 在 publish 方线程里被调,必须轻(只丢 queue),重活放自己的线程。
+    """
+    with _lock:
+        _local_subs.append(fn)
+
+
+def unsubscribe_local(fn):
+    with _lock:
+        if fn in _local_subs:
+            _local_subs.remove(fn)
 
 
 def _set_loop(loop):
@@ -53,11 +76,26 @@ async def _broadcast(message):
 
 
 def publish(event_type, **payload):
-    """从任意线程发布一个事件。无订阅者/循环未就绪时安全忽略。"""
+    """从任意线程发布一个事件。先送达本地订阅者,再广播 WS 订阅者。
+
+    本地订阅者与 WS 解耦:即便没有浮窗在线(Agent 仍要旁观),本地订阅也照收。
+    """
+    event = {"type": event_type, "ts": now_ts(), **payload}
+
+    # 本地订阅者(AI Agent):同步直调,回调须轻(丢 queue)。异常不拖垮发布方。
+    with _lock:
+        subs = list(_local_subs)
+    for fn in subs:
+        try:
+            fn(event)
+        except Exception:
+            pass
+
+    # WS 订阅者(浮窗):无循环/无客户端时跳过。
     with _lock:
         loop = _loop
         has_clients = bool(_clients)
     if loop is None or not has_clients:
         return
-    message = json.dumps({"type": event_type, **payload}, ensure_ascii=False)
+    message = json.dumps(event, ensure_ascii=False)
     loop.call_soon_threadsafe(lambda: asyncio.ensure_future(_broadcast(message)))

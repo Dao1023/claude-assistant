@@ -19,6 +19,7 @@ import time
 from assistant.app.tray import run_tray
 from assistant.app import lifecycle
 from assistant.core import db, settings
+from assistant.io.agent import start_agent
 from assistant.io.launcher import _ensure_server, open_panel
 from assistant.io.notify_window import start_ui
 from assistant.io.pusher import tick_push
@@ -48,6 +49,9 @@ def main():
     threading.Thread(target=scheduler_loop, daemon=True).start()
     # 面板服务随启动常驻预热:点托盘时服务已热,open_panel 秒开、零等待、无竞态
     _ensure_server()
+    # AI 旁观 Agent(第四层):订阅事件总线,有 key 则用 DeepSeek 判断该不该开口;
+    # 无 key 退化为只旁观不开口。daemon 线程,随程序退出。
+    start_agent()
     # 托盘退出 = 带走整个程序:托盘子线程发信号,看门线程轮询到后 os._exit 强杀
     lifecycle.register_cleanup(lambda: None)
     threading.Thread(target=lifecycle.watch_quit, daemon=True).start()
