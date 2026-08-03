@@ -63,10 +63,10 @@ export const doneTask = (id: string, note?: string) => postAction(id, 'done', no
 /** 关闭任务(不再催,周期任务不再克隆)。 */
 export const closeTask = (id: string) => postAction(id, 'close')
 
-/** 推迟任务。until 为 'YYYY-MM-DD HH:MM' 字符串,缺省 1 小时;note 为留言。 */
-export async function snoozeTask(id: string, until?: string, note?: string): Promise<void> {
-  const body: Record<string, string> = {}
-  if (until) body.until = until
+/** 推迟任务。until 为 'YYYY-MM-DD HH:MM' 字符串或 Unix 秒(snooze-options 返回的),缺省 1 小时;note 为留言。 */
+export async function snoozeTask(id: string, until?: string | number, note?: string): Promise<void> {
+  const body: Record<string, string | number> = {}
+  if (until !== undefined) body.until = until
   if (note) body.note = note
   const res = await fetch(`/api/tasks/${id}/snooze`, {
     method: 'POST',

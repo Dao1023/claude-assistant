@@ -6,13 +6,12 @@
 
 线程模型(与原 tkinter 同构,故托盘/调度/面板子线程不用动):
 - 主线程:webview.start() GUI 事件循环(start_ui,阻塞)。
-- 开窗请求经队列 _requests 从任意线程(调度/pusher)传入;
-  start() 的 func 钩子起一个消费线程,把请求派回 GUI 线程开窗。
-  pywebview 的 create_window 在 start() 运行后从非 GUI 线程调用是支持的,
-  但用队列串行化可避免并发开窗竞争,最稳。
+- 开窗信号经队列 _requests 从任意线程(调度/pusher)传入;消费线程取出后开窗。
 
-单例:同一时刻只开一个通知窗。新通知来时,窗已开则让前端自己刷新
-(/notify 页轮询 /api/tasks),不重复开窗;窗被关则 _win 置 None,下次重开。
+常驻单例 + 隐藏切换(关键):
+pywebview 的 start() 之前必须先建至少一个窗口,故启动时建一个 hidden 窗;
+有通知 show()、用户点关闭则拦截改为 hide()——窗口常驻不销毁,start() 循环不退。
+这正好契合「单例复用」:一个窗,通知来了显示,处理完隐藏,下次通知再显示。
 """
 import queue
 import threading
@@ -25,63 +24,67 @@ _W, _H = 380, 520          # 浮窗尺寸(无框,内容自适应滚动)
 _MARGIN = 16
 
 _requests = queue.Queue()  # 跨线程开窗信号(内容无需携带,前端拉数据)
-_win = None                # 当前通知窗(Window 或 None)
-_lock = threading.Lock()
+_win = None                # 常驻通知窗(Window,创建后不销毁)
+_ready = threading.Event() # GUI 循环已启动、窗口已建
 
 
 def _notify_url():
     return f"http://127.0.0.1:{WEB_PORT}/notify"
 
 
-def _open_window():
-    """在 GUI 线程开(或聚焦)通知浮窗。右下角、无框、置顶、可拖、圆角阴影。"""
-    global _win
-    with _lock:
-        if _win is not None:
-            try:
-                _win.show()
-                _win.on_top = True
-            except Exception:
-                _win = None
-        if _win is None:
-            screen = webview.screens[0]
-            x = screen.width - _W - _MARGIN
-            y = screen.height - _H - _MARGIN - 48   # 避开任务栏
-            _win = webview.create_window(
-                "待办", _notify_url(),
-                width=_W, height=_H, x=x, y=y,
-                frameless=True, on_top=True, easy_drag=True,
-                resizable=False, shadow=True,
-            )
-            _win.events.closed += _on_closed
+def _position():
+    """右下角定位(主屏,避开任务栏)。"""
+    screen = webview.screens[0]
+    x = screen.width - _W - _MARGIN
+    y = screen.height - _H - _MARGIN - 48
+    return x, y
 
 
-def _on_closed():
-    """用户关了浮窗:清引用,下次通知重开。"""
-    global _win
-    with _lock:
-        _win = None
+def _show():
+    """显示浮窗并置顶(由消费线程在收到信号时调;窗口已建,只切换可见性)。"""
+    if _win is None:
+        return
+    try:
+        _win.show()
+        _win.on_top = True
+    except Exception as e:
+        print(f"[notify_window] 显示失败: {e}")
 
 
 def _consume():
-    """消费开窗信号:GUI 就绪后由 start() 的 func 钩子启动,阻塞等信号。"""
+    """消费开窗信号:阻塞等信号,收到则显示常驻浮窗。"""
+    _ready.wait()                    # 等 GUI 起来、窗口建好
     while True:
         _requests.get()
-        try:
-            _open_window()
-        except Exception as e:                    # 开窗失败不拖垮消费者
-            print(f"[notify_window] 开窗失败: {e}")
+        _show()
 
 
 def show():
-    """从任意线程请求弹出通知浮窗(幂等:已开则聚焦)。"""
+    """从任意线程请求弹出通知浮窗(幂等)。"""
     _requests.put(True)
 
 
-def start_ui():
-    """主线程入口:起 webview GUI 循环(阻塞)。托盘/调度在子线程,先就绪再调本函数。
+def _on_closing():
+    """用户点关闭:不销毁,改为隐藏(窗口常驻,下次通知再 show)。"""
+    if _win is not None:
+        _win.hide()
+    return False                     # 阻止默认关闭(销毁)
 
-    func 钩子在 GUI 初始化完成后回调,那里起消费线程——保证 create_window
-    调用时 GUI 已就绪。
+
+def start_ui():
+    """主线程入口:建常驻浮窗(先隐藏)+ 起 GUI 循环(阻塞)。
+
+    托盘/调度/看门在子线程,先就绪再调本函数。
     """
-    webview.start(func=lambda: threading.Thread(target=_consume, daemon=True).start())
+    global _win
+    x, y = _position()
+    _win = webview.create_window(
+        "待办", _notify_url(),
+        width=_W, height=_H, x=x, y=y,
+        frameless=True, on_top=True, easy_drag=True,
+        resizable=False, shadow=True, hidden=True,   # 启动先隐藏,有通知才 show
+    )
+    _win.events.closing += _on_closing
+    _ready.set()
+    threading.Thread(target=_consume, daemon=True).start()
+    webview.start()
