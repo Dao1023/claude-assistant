@@ -14,6 +14,7 @@ import pystray
 from PIL import Image, ImageDraw
 
 from ..config import APP_NAME
+from ..io import notify_window
 from . import lifecycle
 
 WM_NULL = 0x0000
@@ -98,8 +99,12 @@ def run_tray(on_open=None):
     # 左键单击触发 default 项(打开面板);菜单里也保留入口作退路
     open_item = pystray.MenuItem("打开面板", lambda: on_open and on_open(),
                                  default=True, visible=on_open is not None)
+    # 手动唤出待办浮窗(通知来了自动弹,这里给「随时想看」的入口)。
+    # notify_window.show 是队列式跨线程信号,托盘线程直接调安全。
+    show_item = pystray.MenuItem("显示待办窗", lambda: notify_window.show())
     icon.menu = pystray.Menu(
         open_item,
+        show_item,
         pystray.MenuItem("退出", _quit),
     )
     threading.Thread(target=_taskbar_created_watcher,

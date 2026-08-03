@@ -1,38 +1,18 @@
-"""推送生命周期:按重要性挑任务,三档催促 + 节流 + 冷却,弹催办小卡 + 写 push_log。
+"""推送生命周期:按重要性挑任务,三档催促 + 节流 + 冷却,触发通知浮窗 + 写 push_log。
 
-属于 io 层:弹 tkinter 小卡(popup),按钮接生命周期(完成/稍后/找AI)。
-时间一律 Unix 秒级 int(core/timeutil.py)。
+属于 io 层。按钮交互(完成/稍后/找AI)在前端 /notify 页,走 server 的 REST API;
+本模块只负责「挑任务 → 写 push_log → 叫浮窗出来」。
 过滤/定档逻辑走 core/funnel 管线(与规则页 /api/funnel 统计共用同一份,保证一致);
 数值阈值读 core/settings,可在规则页配置。
 """
 from ..core import actions, db, funnel, settings
 from ..core.timeutil import now_ts, to_str
-from .launcher import launch_claude
-from .popup import show_task_card
+from . import events, notify_window
 
 
 def _now():
     """写 push_log 用的当前 Unix 秒级时间戳。"""
     return now_ts()
-
-
-def _make_callbacks(tid):
-    """三个按钮的真实生命周期操作。on_snooze 接受可选 until(秒)。"""
-    def on_done():
-        conn = db.connect()
-        actions.do_done(conn, {"task_id": tid})       # 周期任务自动克隆下一个
-        db.log_push(conn, tid, _now(), "done", response="done")
-        conn.close()
-
-    def on_snooze(until=None):
-        conn = db.connect()
-        actions.do_snooze(conn, {"task_id": tid, "until": until})
-        conn.close()
-
-    def on_ai():
-        launch_claude()                                 # 只开干净窗口,用户自己 /resume
-
-    return on_done, on_snooze, on_ai
 
 
 def pick(conn, now=None):
@@ -81,7 +61,12 @@ def funnel_engine_lists(conn):
 
 
 def tick_push():
-    """主入口:挑本轮最该催的(end 优先)→ 弹小卡并写 push_log。"""
+    """主入口:挑本轮最该催的(end 优先)→ 写 push_log + 触发通知浮窗。
+
+    不再每任务弹一张卡:浮窗是单例滚动列表(见 io/notify_window),
+    挑到了就 show() 一次,前端 /notify 页自己拉全部待办渲染。
+    按钮(完成/稍后/找AI)逻辑在前端,走 server 的 REST API,不在此。
+    """
     conn = db.connect()
     db.init_db()
     actions.close_overdue(conn)            # 超时即关闭:过期 end 任务先落 closed
@@ -91,8 +76,13 @@ def tick_push():
         db.log_push(conn, task["id"], now, stage)
     conn.close()
 
-    for task, stage, _nag in picked:
-        on_done, on_snooze, on_ai = _make_callbacks(task["id"])
-        show_task_card(task, stage, on_done, on_snooze, on_ai)
-        print(f"[{to_str(now)}] 弹小卡: [{stage}] {task['title']}")
+    if picked:
+        notify_window.show()
+        # 推给浮窗:通知层把「这次该催谁」作为事件快照推给订阅者,弹窗被动接收、不查询
+        events.publish("notify", tasks=[
+            {"id": t["id"], "title": t["title"], "stage": stage}
+            for t, stage, _n in picked
+        ])
+        for _t, stage, _n in picked:
+            print(f"[{to_str(now)}] 触发浮窗: [{stage}] {_t['title']}")
     return len(picked)

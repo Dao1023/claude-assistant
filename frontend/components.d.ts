@@ -36,6 +36,7 @@ declare module 'vue' {
     ElTimeline: typeof import('element-plus/es')['ElTimeline']
     ElTimelineItem: typeof import('element-plus/es')['ElTimelineItem']
     NightBand: typeof import('./src/components/NightBand.vue')['default']
+    NotifyPage: typeof import('./src/components/NotifyPage.vue')['default']
     RulesPage: typeof import('./src/components/RulesPage.vue')['default']
     TagFilter: typeof import('./src/components/TagFilter.vue')['default']
     TaskCard: typeof import('./src/components/TaskCard.vue')['default']

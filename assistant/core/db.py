@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS push_log (
   task_id    TEXT REFERENCES tasks(id),
   pushed_at  INTEGER NOT NULL,      -- 推送时间,Unix 秒
   stage      TEXT,
-  response   TEXT
+  response   TEXT,
+  note       TEXT                    -- 用户留言:完成/推迟时顺手记的「为什么」
 );
 
 CREATE TABLE IF NOT EXISTS settings (
@@ -65,6 +66,17 @@ def connect():
 def init_db():
     with connect() as conn:
         conn.executescript(SCHEMA)
+        _migrate(conn)
+
+
+def _migrate(conn):
+    """轻量迁移:老库缺列时 ALTER 补上(新库由 SCHEMA 直接含,跳过)。
+
+    判据:PRAGMA table_info 看列在不在,幂等。
+    """
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(push_log)")}
+    if "note" not in cols:
+        conn.execute("ALTER TABLE push_log ADD COLUMN note TEXT")
 
 
 def new_id():
@@ -142,11 +154,11 @@ def list_active(conn, drive=None):
 
 # ---------- push_log ----------
 
-def log_push(conn, tid, pushed_at, stage, response=None):
+def log_push(conn, tid, pushed_at, stage, response=None, note=None):
     with conn:
         conn.execute(
-            "INSERT INTO push_log (task_id,pushed_at,stage,response) VALUES (?,?,?,?)",
-            (tid, pushed_at, stage, response),
+            "INSERT INTO push_log (task_id,pushed_at,stage,response,note) VALUES (?,?,?,?,?)",
+            (tid, pushed_at, stage, response, note),
         )
 
 

@@ -46,25 +46,32 @@ export async function fetchTaskPushes(id: string): Promise<PushesResponse> {
   return (await res.json()) as PushesResponse
 }
 
-/** 任务动作(完成/稍后/关闭),统一走 POST /api/tasks/{id}/{action}。 */
-async function postAction(id: string, action: 'done' | 'close'): Promise<void> {
-  const res = await fetch(`/api/tasks/${id}/${action}`, { method: 'POST' })
+/** 任务动作(完成/关闭),统一走 POST /api/tasks/{id}/{action}。可带 note 留言。 */
+async function postAction(id: string, action: 'done' | 'close', note?: string): Promise<void> {
+  const res = await fetch(`/api/tasks/${id}/${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(note ? { note } : {}),
+  })
   if (!res.ok) {
     throw new Error(res.status === 404 ? '任务不存在' : `操作失败:${res.status} ${res.statusText}`)
   }
 }
 
-/** 完成任务(周期任务自动克隆下一个)。 */
-export const doneTask = (id: string) => postAction(id, 'done')
+/** 完成任务(周期任务自动克隆下一个)。note 为留言。 */
+export const doneTask = (id: string, note?: string) => postAction(id, 'done', note)
 /** 关闭任务(不再催,周期任务不再克隆)。 */
 export const closeTask = (id: string) => postAction(id, 'close')
 
-/** 推迟任务。until 为 'YYYY-MM-DD HH:MM' 字符串,缺省 1 小时。 */
-export async function snoozeTask(id: string, until?: string): Promise<void> {
+/** 推迟任务。until 为 'YYYY-MM-DD HH:MM' 字符串或 Unix 秒(snooze-options 返回的),缺省 1 小时;note 为留言。 */
+export async function snoozeTask(id: string, until?: string | number, note?: string): Promise<void> {
+  const body: Record<string, string | number> = {}
+  if (until !== undefined) body.until = until
+  if (note) body.note = note
   const res = await fetch(`/api/tasks/${id}/snooze`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(until ? { until } : {}),
+    body: JSON.stringify(body),
   })
   if (!res.ok) {
     throw new Error(res.status === 404 ? '任务不存在' : `操作失败:${res.status} ${res.statusText}`)
