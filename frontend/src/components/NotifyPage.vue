@@ -35,8 +35,13 @@ const replyDraft = ref('')
 const replyBusy = ref(false)
 const chatListEl = ref<HTMLElement | null>(null)
 const replyInputEl = ref<HTMLInputElement | null>(null)   // 回复框 ref:发送后保持焦点
-const showProcess = ref(false)                        // 「AI 看了啥」展开与否
+const showProcess = ref(false)                        // 「AI 上下文」展开与否
 const aiLog = ref<AiLogEntry[]>([])
+
+// ---- 输入历史(终端式 ↑↓ 翻) ----
+const history = ref<string[]>([])                     // 用户发过的消息,新的在后
+const historyIdx = ref(-1)                            // -1=没在翻;否则=当前翻到的下标
+const draftBackup = ref('')                           // 开始翻之前暂存的草稿
 
 const STAGE_LABEL: Record<string, string> = {
   gentle: '提醒',
@@ -94,6 +99,9 @@ async function onReply() {
   replyBusy.value = true
   try {
     pushChat('user', text)
+    history.value.push(text)              // 记入输入历史(供 ↑↓ 翻)
+    historyIdx.value = -1                 // 重置翻阅状态
+    draftBackup.value = ''
     replyDraft.value = ''
     await replyAi(text)               // AI 接话后经 /ws 推 ai_message 回来
   } catch (err) {
@@ -103,6 +111,32 @@ async function onReply() {
     // 输入框已不随忙碌禁用,焦点本不丢;此处再补回保险(点发送按钮后焦点回输入框)
     nextTick(() => replyInputEl.value?.focus())
   }
+}
+
+/** ↑↓ 翻输入历史(终端式)。↑ 往旧的翻,↓ 往新的翻,翻过最新恢复暂存草稿。 */
+function onHistoryKey(e: KeyboardEvent) {
+  if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
+  const n = history.value.length
+  if (!n) return
+  e.preventDefault()                       // 拦住光标移到行首/行尾,翻历史更像终端
+  if (e.key === 'ArrowUp') {
+    if (historyIdx.value === -1) {
+      draftBackup.value = replyDraft.value  // 首次上翻,暂存当前草稿
+      historyIdx.value = n - 1              // 跳到最新一条
+    } else if (historyIdx.value > 0) {
+      historyIdx.value--                    // 往旧的翻
+    }
+  } else {                                  // ArrowDown
+    if (historyIdx.value === -1) return     // 没在翻,忽略
+    if (historyIdx.value < n - 1) {
+      historyIdx.value++                    // 往新的翻
+    } else {
+      historyIdx.value = -1                 // 翻过最新,恢复草稿
+      replyDraft.value = draftBackup.value
+      return
+    }
+  }
+  replyDraft.value = history.value[historyIdx.value]
 }
 
 async function toggleProcess() {
@@ -267,8 +301,9 @@ onUnmounted(() => {
             v-model="replyDraft"
             class="np-reply-input"
             type="text"
-            placeholder="回 AI 一句…"
+            placeholder="回 AI 一句…(↑↓ 翻历史)"
             @keyup.enter="onReply"
+            @keydown="onHistoryKey"
           />
           <button
             class="np-send"
