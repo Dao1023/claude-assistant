@@ -90,7 +90,7 @@ function pushChat(role: 'ai' | 'user', text: string, ts?: number) {
 
 async function onReply() {
   const text = replyDraft.value.trim()
-  if (!text) return
+  if (!text || replyBusy.value) return    // 忙时防 Enter 重入(按钮已 disabled)
   replyBusy.value = true
   try {
     pushChat('user', text)
@@ -100,7 +100,7 @@ async function onReply() {
     ElMessage.error(err instanceof Error ? err.message : '发送失败')
   } finally {
     replyBusy.value = false
-    // 发送后光标留在对话框,不用重新点(disabled 会丢焦点,恢复后补回)
+    // 输入框已不随忙碌禁用,焦点本不丢;此处再补回保险(点发送按钮后焦点回输入框)
     nextTick(() => replyInputEl.value?.focus())
   }
 }
@@ -256,17 +256,24 @@ onUnmounted(() => {
 
         <!-- 回复框 -->
         <div class="np-reply">
+          <!-- 输入框永不禁用:AI 在答时也能继续打下一句,只禁发送按钮。 -->
           <input
             ref="replyInputEl"
             v-model="replyDraft"
             class="np-reply-input"
             type="text"
             placeholder="回 AI 一句…"
-            :disabled="replyBusy"
             @keyup.enter="onReply"
           />
-          <button class="np-btn primary small" :disabled="replyBusy || !replyDraft.trim()" @click="onReply">
-            发
+          <button
+            class="np-send"
+            :disabled="replyBusy || !replyDraft.trim()"
+            title="发送"
+            @click="onReply"
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
+              <path d="M3 11.5 21 3l-7.5 18-2.8-7.2L3 11.5z" />
+            </svg>
           </button>
         </div>
       </section>
@@ -549,6 +556,28 @@ onUnmounted(() => {
 }
 .np-reply-input:focus {
   border-color: #5b9bd5;
+}
+/* 圆形发送图标按钮:替代原「发」文字按钮 */
+.np-send {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #5b9bd5;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.np-send:hover:not(:disabled) {
+  background: #4a8ac8;
+}
+.np-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* 待办列 */
