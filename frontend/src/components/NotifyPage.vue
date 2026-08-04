@@ -363,10 +363,12 @@ onUnmounted(() => {
           >
             <!-- 系统行:AI 旁观判断,居中、低调,不起气泡 -->
             <div v-if="m.role === 'system'" class="np-sysline" :class="m.kind">
-              <!-- observe:一次判断,AI 看了啥全展开 -->
+              <!-- observe:一次判断,默认折叠一行,点开看 AI 读了啥 -->
               <template v-if="m.kind === 'observe'">
-                <div class="np-observe-head">👀 AI 看了一眼</div>
-                <pre v-if="m.prompt" class="np-observe-prompt">{{ m.prompt }}</pre>
+                <details class="np-observe">
+                  <summary>👀 AI 看了一眼</summary>
+                  <pre v-if="m.prompt" class="np-observe-prompt">{{ m.prompt }}</pre>
+                </details>
               </template>
               <template v-else-if="m.kind === 'silent'">🤫 已静默</template>
               <template v-else>⚠️ AI 调用失败:{{ m.text }}</template>
@@ -656,13 +658,25 @@ onUnmounted(() => {
   width: 100%;
   box-sizing: border-box;
 }
-.np-observe-head {
+/* 折叠的 observe:summary 一行可点,展开看 prompt 原文 */
+.np-observe summary {
+  cursor: pointer;
   font-weight: 600;
-  margin-bottom: 2px;
+  list-style: none;
+  user-select: none;
 }
-/* AI 看到的上下文原文:全展开,不折叠不省略 */
+.np-observe summary::-webkit-details-marker {
+  display: none;
+}
+.np-observe summary::before {
+  content: '▸ ';
+}
+.np-observe[open] summary::before {
+  content: '▾ ';
+}
+/* AI 看到的上下文原文:点开才展开 */
 .np-observe-prompt {
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   white-space: pre-wrap;
   word-break: break-word;
   font-size: 11px;
