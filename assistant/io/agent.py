@@ -215,11 +215,20 @@ class Agent:
     # ---- 用户回复(浮窗左列回话) ----
 
     def reply(self, text: str):
-        """用户在浮窗回了一句:记进事件流(进记忆)+ 让模型接话。"""
+        """用户在浮窗回了一句:记进事件流(进记忆)+ 让模型接话。
+
+        用户主动开口,就不是「该不该说」的问题,必须接话——所以这条路
+        不用 SILENT 协议;模型若仍习惯性回 SILENT,拦截改默认接话,绝不把
+        这个字面量透给用户。
+        """
         events.publish("user_reply", text=text)
         if self._backend is None:
             return
-        prompt = f"用户回复你:「{text}」。简短接一句话(不要长篇说教)。"
+        prompt = (
+            f"用户对你说:「{text}」。"
+            "他正在和你对话,请直接回应这句话(简短、像朋友,不要长篇说教)。"
+            "这是对话不是旁观判断,不要用 SILENT。"
+        )
         self._log("user_reply", {"text": text})
         try:
             out = self._backend.judge(prompt, context=self._dialog,
@@ -227,6 +236,9 @@ class Agent:
         except Exception as e:
             self._log("llm_error", {"error": str(e)})
             return
+        # 兜底:用户主动对话不该收到 SILENT;模型若仍回,换成中性接话
+        if out.strip().upper().startswith("SILENT") or not out.strip():
+            out = "嗯,我在听,你说。"
         self._dialog.append({"role": "user", "content": prompt})
         self._dialog.append({"role": "assistant", "content": out})
         self._trim_dialog()
