@@ -147,26 +147,6 @@ export interface FunnelResponse {
   dnd: DndStatus
 }
 
-/** AI 调用过程日志一条(JSONL)。kind: observe/silent/speak/llm_error/user_reply/error */
-export interface AiLogEntry {
-  ts: number
-  kind: string
-  /** observe: 触发事件 + 喂给模型的 prompt */
-  trigger?: Record<string, unknown>
-  prompt?: string
-  memory_size?: number
-  /** speak: 开口内容 */
-  text?: string
-  /** silent/llm_error/error 的补充说明 */
-  reason?: string
-  error?: string
-}
-
-/** GET /api/ai/log 返回(倒序,最新在前) */
-export interface AiLogResponse {
-  entries: AiLogEntry[]
-}
-
 /** 对话时间线一条(供浮窗重载后回填)。role: user=你说 / ai=AI 说 / system=旁观判断 */
 export interface AiHistoryEntry {
   role: 'user' | 'ai' | 'system'

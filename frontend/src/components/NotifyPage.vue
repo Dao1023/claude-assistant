@@ -15,7 +15,6 @@ import { marked } from 'marked'
 import {
   doneTask,
   fetchAiHistory,
-  fetchAiLog,
   fetchRules,
   fetchSnoozeOptions,
   replyAi,
@@ -23,7 +22,7 @@ import {
   snoozeTask,
   updateSettings,
 } from '@/api/client'
-import type { AiLogEntry, SnoozeOption, WillPushTask } from '@/types'
+import type { SnoozeOption, WillPushTask } from '@/types'
 
 const tasks = ref<WillPushTask[]>([])
 const snoozeOptions = ref<Record<string, SnoozeOption[]>>({})   // 每任务的推迟选项(点「稍后」时按任务现取)
@@ -47,8 +46,6 @@ const replyDraft = ref('')
 const replyBusy = ref(false)
 const chatListEl = ref<HTMLElement | null>(null)
 const replyInputEl = ref<HTMLInputElement | null>(null)   // 回复框 ref:发送后保持焦点
-const showProcess = ref(false)                        // 「AI 上下文」展开与否
-const aiLog = ref<AiLogEntry[]>([])
 
 // ---- 浮窗尺寸设置(无边框无拖边,用滑条调宽高) ----
 const showSize = ref(false)
@@ -204,29 +201,11 @@ function onHistoryKey(e: KeyboardEvent) {
   replyDraft.value = history.value[historyIdx.value]
 }
 
-async function toggleProcess() {
-  showProcess.value = !showProcess.value
-  if (showProcess.value) {
-    try {
-      aiLog.value = (await fetchAiLog(50)).entries
-    } catch { aiLog.value = [] }
-  }
-}
-
 function fmtTime(ts?: number) {
   if (!ts) return ''
   const d = new Date(ts * 1000)
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-const LOG_KIND_LABEL: Record<string, string> = {
-  observe: '👀 观察',
-  silent: '🤫 沉默',
-  speak: '💬 AI',
-  user_reply: '🗣 用户回复',
-  llm_error: '⚠️ 模型错误',
-  error: '⚠️ 错误',
 }
 
 // ---- 待办列(完成/推迟/全部稍后) ----
@@ -366,9 +345,6 @@ onUnmounted(() => {
       <section class="np-ai">
         <div class="np-ai-head">
           <span class="np-col-title">🤖 AI 助手</span>
-          <button class="np-link" @click="toggleProcess">
-            AI 上下文
-          </button>
         </div>
 
         <!-- 对话流 -->
@@ -478,29 +454,6 @@ onUnmounted(() => {
           </div>
         </div>
       </section>
-    </div>
-
-    <!-- AI 上下文:模态弹框,浮在上方不挤压对话区,能显示更大 -->
-    <div v-if="showProcess" class="np-modal-mask" @click.self="toggleProcess">
-      <div class="np-modal">
-        <div class="np-modal-head">
-          <span class="np-modal-title">AI 上下文</span>
-          <button class="np-close" title="关闭" @click="toggleProcess">×</button>
-        </div>
-        <div class="np-modal-body">
-          <div v-if="!aiLog.length" class="np-process-empty">还没有上下文记录</div>
-          <div v-for="(e, i) in aiLog" :key="i" class="np-process-item">
-            <span class="np-process-kind">{{ LOG_KIND_LABEL[e.kind] || e.kind }}</span>
-            <span class="np-process-time">{{ fmtTime(e.ts) }}</span>
-            <div v-if="e.text" class="np-process-text">{{ e.text }}</div>
-            <div v-else-if="e.reason" class="np-process-text dim">{{ e.reason }}</div>
-            <details v-if="e.prompt" class="np-process-prompt">
-              <summary>看到的上下文</summary>
-              <pre>{{ e.prompt }}</pre>
-            </details>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -634,103 +587,6 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
-}
-.np-link {
-  border: none;
-  background: transparent;
-  color: #5b9bd5;
-  font-size: 11px;
-  cursor: pointer;
-  padding: 2px 4px;
-  font-family: inherit;
-}
-.np-link:hover {
-  text-decoration: underline;
-}
-
-/* AI 上下文:模态弹框(浮在对话区上方,不再挤压布局) */
-.np-modal-mask {
-  position: fixed;
-  inset: 0;
-  background: rgba(30, 41, 59, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 16px;
-}
-.np-modal {
-  width: min(560px, 92%);
-  height: min(480px, 86%);
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.np-modal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
-  border-bottom: 1px solid #ebeef5;
-  flex-shrink: 0;
-}
-.np-modal-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #2c3e50;
-}
-.np-modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px 14px;
-  min-height: 0;
-  user-select: text;
-}
-.np-process-empty {
-  color: #c0c4cc;
-  font-size: 11px;
-  text-align: center;
-  padding: 20px 0;
-}
-.np-process-item {
-  font-size: 11px;
-  margin-bottom: 10px;
-  color: #606266;
-}
-.np-process-kind {
-  font-weight: 600;
-}
-.np-process-time {
-  color: #c0c4cc;
-  margin-left: 6px;
-  font-size: 10px;
-}
-.np-process-text {
-  margin-top: 2px;
-  line-height: 1.4;
-}
-.np-process-text.dim {
-  color: #909399;
-}
-.np-process-prompt summary {
-  cursor: pointer;
-  color: #5b9bd5;
-  font-size: 10px;
-}
-.np-process-prompt pre {
-  white-space: pre-wrap;
-  word-break: break-all;
-  font-size: 10px;
-  color: #909399;
-  max-height: 120px;
-  overflow-y: auto;
-  margin: 4px 0 0;
-  /* 显式开选择:pre 默认不继承,这里补死,确保 prompt 原文可复制 */
-  user-select: text;
-  cursor: text;
 }
 
 /* AI 对话流 */

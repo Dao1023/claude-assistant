@@ -1,7 +1,6 @@
 import type {
   AddTaskPayload,
   AiHistoryResponse,
-  AiLogResponse,
   EditableSetting,
   FunnelResponse,
   PushesResponse,
@@ -174,15 +173,6 @@ export async function clearDnd(): Promise<void> {
   if (!res.ok) {
     throw new Error(`恢复失败:${res.status} ${res.statusText}`)
   }
-}
-
-/** 拉取 AI 调用过程日志(供浮窗「AI 看了啥」展示)。倒序,最新在前。 */
-export async function fetchAiLog(limit = 100): Promise<AiLogResponse> {
-  const res = await fetch(`/api/ai/log?limit=${limit}`, { headers: { Accept: 'application/json' } })
-  if (!res.ok) {
-    throw new Error(`请求失败:${res.status} ${res.statusText}`)
-  }
-  return (await res.json()) as AiLogResponse
 }
 
 /** 拉取对话历史(供浮窗重载后回填对话流)。正序,只含 user/ai 两类。 */
