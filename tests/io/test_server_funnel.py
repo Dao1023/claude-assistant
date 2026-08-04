@@ -43,9 +43,9 @@ def test_funnel_returns_layers_and_settings(client):
     # 免打扰层挂了夜间恢复点配置
     dnd = next(l for l in body["layers"] if l["id"] == "dnd")
     assert {s["key"] for s in dnd["settings"]} == {"dnd_night_end"}
-    # 限量层挂限量配置
+    # 节流层挂限量 + 推送间隔两个配置
     limit = next(l for l in body["layers"] if l["id"] == "limit")
-    assert {s["key"] for s in limit["settings"]} == {"max_concurrent"}
+    assert {s["key"] for s in limit["settings"]} == {"max_concurrent", "poll_interval"}
     assert "poll_interval" in body
     assert "dnd" in body and body["dnd"]["active"] is False
 

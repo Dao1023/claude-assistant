@@ -222,6 +222,15 @@ async function toggleSnooze(id: string) {
   }
 }
 
+// 推迟选项 label 形如「3 天(×0.1)」或兜底「1 小时后」;拆成时长 + 算式两块显示
+function snoozeDur(label: string): string {
+  return label.split('(')[0].trim()
+}
+function snoozeRatio(label: string): string {
+  const m = label.match(/×([\d.]+)/)
+  return m ? `= 间隔 × ${m[1]}` : ''
+}
+
 function hideWindow() {
   const api = (window as unknown as { pywebview?: { api?: { hide?: () => void } } }).pywebview?.api
   if (api?.hide) {
@@ -389,10 +398,13 @@ onUnmounted(() => {
               <button
                 v-for="o in snoozeOptions[t.id] || []"
                 :key="o.key"
-                class="np-btn small"
+                class="np-snooze-opt"
                 :disabled="busy[t.id]"
                 @click="onSnooze(t, o.until)"
-              >{{ o.label }}</button>
+              >
+                <span class="np-snooze-dur">推迟 {{ snoozeDur(o.label) }}</span>
+                <span class="np-snooze-ratio">{{ snoozeRatio(o.label) }}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -809,13 +821,44 @@ onUnmounted(() => {
   opacity: 0.5;
   cursor: not-allowed;
 }
+/* 推迟选项:一行一行,左时长右算式(借鉴冷却层被挡任务的样式) */
 .np-snooze-opts {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  flex-direction: column;
   margin-top: 8px;
-  padding-top: 8px;
+  padding-top: 4px;
   border-top: 1px dashed #eee;
+}
+.np-snooze-opt {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border: none;
+  border-bottom: 1px dashed #f0f0f0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.np-snooze-opt:last-child {
+  border-bottom: none;
+}
+.np-snooze-opt:hover:not(:disabled) {
+  background: #f5f8fc;
+}
+.np-snooze-opt:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.np-snooze-dur {
+  font-size: 13px;
+  color: #2c3e50;
+}
+.np-snooze-ratio {
+  font-size: 12px;
+  color: #909399;
 }
 .np-snooze-all {
   margin-top: 12px;
