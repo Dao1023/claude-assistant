@@ -218,7 +218,13 @@ def create_app() -> FastAPI:
             finally:
                 conn.close()
         opts = actions.snooze_options(task)
-        return {"options": [{"key": k, "label": lbl, "until": ts}
+        # until 按规范给边界字符串,前端发回后 to_ts 统一转 int。不给 int(边界一律
+        # 字符串),也避开 Pydantic v2 拒 int→str 的 422。带秒(to_str 只到分,会丢
+        # 几十秒精度,短档推迟 12 分钟经不起丢);to_ts 能解析 'YYYY-MM-DD HH:MM:SS'。
+        from datetime import datetime
+        def _s(ts):
+            return datetime.fromtimestamp(int(ts)).strftime("%Y-%m-%d %H:%M:%S")
+        return {"options": [{"key": k, "label": lbl, "until": _s(ts)}
                             for k, (lbl, ts) in opts.items()]}
 
     @app.delete("/api/tasks/{tid}/snooze")

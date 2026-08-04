@@ -74,8 +74,8 @@ export interface PushesResponse {
 export interface SnoozeOption {
   key: string
   label: string
-  /** 到点的 Unix 秒 */
-  until: number
+  /** 到点时刻('YYYY-MM-DD HH:MM',边界字符串,发回后端 to_ts 转 int) */
+  until: string
 }
 
 /** GET /api/snooze-options 返回 */

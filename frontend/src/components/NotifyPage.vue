@@ -196,7 +196,7 @@ async function onDone(t: WillPushTask) {
   }
 }
 
-async function onSnooze(t: WillPushTask, until?: string | number) {
+async function onSnooze(t: WillPushTask, until?: string) {
   busy.value[t.id] = true
   try {
     await snoozeTask(t.id, until, notes.value[t.id]?.trim() || undefined)
