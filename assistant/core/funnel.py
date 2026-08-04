@@ -40,9 +40,6 @@ LAYERS = [
     {"id": "snooze", "label": "推迟中",
      "desc": "你点了「稍后」,还没到约定时间,这期间不催。",
      "setting_keys": []},
-    {"id": "cooldown", "label": "冷却中",
-     "desc": "刚催过没多久,给你留喘息。冷却时长 = 任务间隔 × 冷却系数。",
-     "setting_keys": ["cooldown_ratio", "cooldown_fallback"]},
     {"id": "limit", "label": "限量",
      "desc": "过了上面几关、本轮该催的任务,一次最多弹出这么多张,其余排队下轮。",
      "setting_keys": ["max_concurrent"]},
@@ -103,21 +100,6 @@ def check_snooze(task, ctx):
     return None
 
 
-def check_cooldown(task, ctx):
-    """距上次推送不足「间隔×冷却系数」→ 被挡。无间隔字段用兜底冷却。"""
-    last_at = ctx.get("last_at")
-    if not last_at:
-        return None
-    interval = _task_interval(task) or settings.get("cooldown_fallback")
-    ratio = settings.get("cooldown_ratio")
-    cooldown = max(int(int(interval) * ratio), 60)   # 至少 60s
-    elapsed = ctx["now"] - int(last_at)
-    if elapsed < cooldown:
-        return (f"已过 {fmt_duration(elapsed)} / 冷却 {fmt_duration(cooldown)}"
-                f" = 间隔 {fmt_duration(interval)} × 冷却系数 {ratio}")
-    return None
-
-
 def check_stage(task, ctx):
     """定档位层不过滤,恒通过(档位由 stage() 单独算)。存在仅为向用户展示这一层。"""
     return None
@@ -127,7 +109,6 @@ def check_stage(task, ctx):
 PIPE = [
     ("future_period", check_future_period),
     ("snooze", check_snooze),
-    ("cooldown", check_cooldown),
 ]
 
 

@@ -26,15 +26,15 @@ def test_get_returns_editable_and_readonly(client):
     assert r.status_code == 200
     body = r.json()
     keys = [i["key"] for i in body["editable"]]
-    assert "cooldown_ratio" in keys and "poll_interval" in keys
+    assert "crisis_importance" in keys and "poll_interval" in keys
     assert len(body["readonly"]) >= 3
 
 
 def test_put_updates_value(client):
-    r = client.put("/api/settings", json={"cooldown_ratio": 0.5})
+    r = client.put("/api/settings", json={"crisis_importance": 1.5})
     assert r.status_code == 200
-    val = next(i for i in r.json()["editable"] if i["key"] == "cooldown_ratio")
-    assert val["value"] == 0.5
+    val = next(i for i in r.json()["editable"] if i["key"] == "crisis_importance")
+    assert val["value"] == 1.5
 
 
 def test_put_rejects_out_of_range(client):

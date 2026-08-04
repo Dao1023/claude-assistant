@@ -7,7 +7,7 @@
  * 左列「AI 助手」:第四层旁观 Agent 的对话记录 + 调用过程。
  *   ai_message 事件(经 /ws)追加 AI 气泡;用户回复走 /api/ai/reply;
  *   「AI 看了啥」展开拉 /api/ai/log 看它每次判断读了什么、为何说话/沉默。
- * 两列解耦:通知列不知什么是冷却/定档;AI 列不知什么是任务过滤,只渲染对话与日志。
+ * 两列解耦:通知列不知什么是过滤/定档;AI 列不知什么是任务过滤,只渲染对话与日志。
  */
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'

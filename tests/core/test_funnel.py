@@ -52,41 +52,6 @@ def test_snooze_blocks_until_reached():
     assert funnel.check_snooze(t2, _ctx()) is None
 
 
-# ---------- 冷却 ∝ 任务间隔 ----------
-
-def test_cooldown_scales_with_interval():
-    # end 周期 1 天 → 冷却 6h。5h 前推过 → 仍冷却;7h 前 → 不冷却
-    t = _task("end", recurrence_interval=DAY)
-    assert funnel.check_cooldown(t, _ctx(last_at=NOW - 5 * 3600)) is not None
-    assert funnel.check_cooldown(t, _ctx(last_at=NOW - 7 * 3600)) is None
-
-
-def test_cooldown_uses_expected_duration_for_start():
-    # start 预期 15 天 → 冷却 3.75 天。1 天前 → 冷却;4 天前 → 不冷却
-    t = _task("start", expected_duration=15 * DAY)
-    assert funnel.check_cooldown(t, _ctx(last_at=NOW - DAY)) is not None
-    assert funnel.check_cooldown(t, _ctx(last_at=NOW - 4 * DAY)) is None
-
-
-def test_cooldown_fallback_when_no_interval():
-    # 无间隔字段 → 兜底 1h,冷却 = 1h×1/4 = 15 分钟
-    t = _task("end", recurrence_interval=None)
-    assert funnel.check_cooldown(t, _ctx(last_at=NOW - 600)) is not None
-    assert funnel.check_cooldown(t, _ctx(last_at=NOW - 1800)) is None
-
-
-def test_no_cooldown_when_never_pushed():
-    t = _task("end", recurrence_interval=DAY)
-    assert funnel.check_cooldown(t, _ctx(last_at=None)) is None
-
-
-def test_cooldown_fallback_reads_settings():
-    # 把兜底冷却改小到 300s,则 10 分钟前的推送不再冷却
-    settings.set("cooldown_fallback", 300)
-    t = _task("end", recurrence_interval=None)
-    assert funnel.check_cooldown(t, _ctx(last_at=NOW - 600)) is None
-
-
 # ---------- run_pipe:只算第一层 ----------
 
 def test_run_pipe_reports_first_block_only():

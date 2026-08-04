@@ -39,13 +39,13 @@ def test_funnel_returns_layers_and_settings(client):
     assert r.headers["content-type"].startswith("application/json")
     body = r.json()
     ids = [l["id"] for l in body["layers"]]
-    assert ids == ["dnd", "future_period", "snooze", "cooldown", "limit", "stage"]
+    assert ids == ["dnd", "future_period", "snooze", "limit", "stage"]
     # 免打扰层挂了夜间恢复点配置
     dnd = next(l for l in body["layers"] if l["id"] == "dnd")
     assert {s["key"] for s in dnd["settings"]} == {"dnd_night_end"}
-    # 冷却层挂了两个配置项
-    cool = next(l for l in body["layers"] if l["id"] == "cooldown")
-    assert {s["key"] for s in cool["settings"]} == {"cooldown_ratio", "cooldown_fallback"}
+    # 限量层挂限量配置
+    limit = next(l for l in body["layers"] if l["id"] == "limit")
+    assert {s["key"] for s in limit["settings"]} == {"max_concurrent"}
     assert "poll_interval" in body
     assert "dnd" in body and body["dnd"]["active"] is False
 

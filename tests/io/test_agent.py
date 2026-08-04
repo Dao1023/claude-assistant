@@ -213,3 +213,42 @@ def test_reply_injects_snapshot(monkeypatch, agt, published):
     agt.reply("给我点建议")
     # Mock 的 calls 记录了收到的 prompt,应含任务清单
     assert any("背单词" in c for c in agt._backend.calls)
+
+
+# ---------- 对话历史回填(read_history) ----------
+
+def _write_log(path, entries):
+    path.write_text("\n".join(json.dumps(e, ensure_ascii=False)
+                              for e in entries) + "\n", encoding="utf-8")
+
+
+def test_read_history_filters_dialog(tmp_path):
+    log = tmp_path / "log.jsonl"
+    _write_log(log, [
+        {"ts": 1, "kind": "user_reply", "text": "你好"},
+        {"ts": 2, "kind": "observe", "trigger": {}},          # 非对话,滤掉
+        {"ts": 3, "kind": "speak", "text": "你好呀"},
+        {"ts": 4, "kind": "silent", "reason": "x"},            # 非对话,滤掉
+        {"ts": 5, "kind": "user_reply", "text": "看任务"},
+        {"ts": 6, "kind": "speak", "text": "今天有日语"},
+    ])
+    hist = agent_mod.read_history(log_file=log)
+    assert [h["role"] for h in hist] == ["user", "ai", "user", "ai"]  # 正序
+    assert hist[0]["text"] == "你好"
+    assert hist[-1]["text"] == "今天有日语"
+
+
+def test_read_history_respects_limit(tmp_path):
+    log = tmp_path / "log.jsonl"
+    entries = []
+    for i in range(10):
+        entries.append({"ts": i, "kind": "user_reply", "text": f"u{i}"})
+        entries.append({"ts": i, "kind": "speak", "text": f"a{i}"})
+    _write_log(log, entries)
+    hist = agent_mod.read_history(limit=4, log_file=log)
+    assert len(hist) == 4                       # 只留最近 4 条
+    assert hist[-1]["text"] == "a9"             # 正序,最新在尾
+
+
+def test_read_history_missing_file(tmp_path):
+    assert agent_mod.read_history(log_file=tmp_path / "none.jsonl") == []
