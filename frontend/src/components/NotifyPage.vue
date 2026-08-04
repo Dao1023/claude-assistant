@@ -36,10 +36,12 @@ interface ChatMsg {
   role: 'ai' | 'user' | 'system'
   text: string
   ts: number
-  /** system 行细分:silent=已静默 / llm_error=模型失败 */
-  kind?: 'silent' | 'llm_error'
-  /** silent 连续合并计数 */
-  count?: number
+  /** system 行细分:observe=一次判断 / silent=已静默 / llm_error=模型失败 */
+  kind?: 'observe' | 'silent' | 'llm_error'
+  /** observe: AI 当时看到的完整上下文,全展开 */
+  prompt?: string
+  /** observe: 触发事件 */
+  trigger?: Record<string, unknown>
 }
 const chat = ref<ChatMsg[]>([])
 const replyDraft = ref('')
@@ -304,7 +306,8 @@ onMounted(() => {
         text: e.text,
         ts: e.ts ?? Date.now() / 1000,
         kind: e.kind,
-        count: e.count,
+        prompt: e.prompt,
+        trigger: e.trigger,
       }))
       // 历史里的用户消息也进 ↑↓ 翻历史栈
       history.value = r.entries.filter((e) => e.role === 'user').map((e) => e.text)
@@ -358,11 +361,14 @@ onUnmounted(() => {
             class="np-msg"
             :class="m.role"
           >
-            <!-- 系统行:AI 旁观判断(静默淡灰 / 报错淡红),居中,不占气泡 -->
+            <!-- 系统行:AI 旁观判断,居中、低调,不起气泡 -->
             <div v-if="m.role === 'system'" class="np-sysline" :class="m.kind">
-              <template v-if="m.kind === 'silent'">
-                🤫 已静默<template v-if="(m.count ?? 1) > 1"> {{ m.count }} 次</template>
+              <!-- observe:一次判断,AI 看了啥全展开 -->
+              <template v-if="m.kind === 'observe'">
+                <div class="np-observe-head">👀 AI 看了一眼</div>
+                <pre v-if="m.prompt" class="np-observe-prompt">{{ m.prompt }}</pre>
               </template>
+              <template v-else-if="m.kind === 'silent'">🤫 已静默</template>
               <template v-else>⚠️ AI 调用失败:{{ m.text }}</template>
             </div>
             <!-- AI 气泡渲染 Markdown;用户气泡保持纯文本 -->
@@ -625,10 +631,14 @@ onUnmounted(() => {
   align-self: flex-end;
   align-items: flex-end;
 }
-/* 系统行:AI 旁观判断,居中、低调,不起气泡 */
+/* 系统行:AI 旁观判断,低调,不起气泡 */
 .np-msg.system {
   align-self: center;
   max-width: 100%;
+}
+/* observe 是长上下文,占满宽、左对齐,别居中 */
+.np-msg.system:has(.np-observe-prompt) {
+  align-self: stretch;
 }
 .np-sysline {
   font-size: 11px;
@@ -640,6 +650,29 @@ onUnmounted(() => {
 .np-sysline.llm_error {
   color: #d98a8a;                 /* 报错:淡红,能注意到但不刺眼 */
   background: rgba(224, 82, 82, 0.07);
+}
+.np-sysline.observe {
+  color: #9aa3b2;
+  width: 100%;
+  box-sizing: border-box;
+}
+.np-observe-head {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+/* AI 看到的上下文原文:全展开,不折叠不省略 */
+.np-observe-prompt {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #7c8698;
+  background: #f6f8fb;
+  border-radius: 6px;
+  padding: 6px 8px;
+  user-select: text;
+  cursor: text;
 }
 .np-bubble {
   padding: 7px 11px;

@@ -314,14 +314,13 @@ def read_log(limit: int = 100, log_file=LOG_FILE) -> list:
 def read_history(limit: int = 50, log_file=LOG_FILE) -> list:
     """从日志滤出对话时间线(正序,供浮窗重载后回填)。
 
-    时间线 = 一条流,不再分「对话」和「AI 上下文」两个视图:
+    时间线 = 一条流,AI 每次看了啥、想了啥、说没说,全摆出来不藏:
     - user_reply → {role:user};speak → {role:ai}(主动 nudge 和接话都算);
-    - silent   → {role:system, kind:silent}:AI 看了但选择沉默。连续多条沉默
-                 合并成一条,count 记次数,前端渲染成一行淡灰「已静默 N 次」,
-                 免得旁观刷屏;
+    - observe  → {role:system, kind:observe}:一次判断,带完整 prompt
+                 (AI 当时看到的任务清单+事件流原文)和触发事件,前端全展开;
+    - silent   → {role:system, kind:silent}:看了但选择沉默(也是一次判断);
     - llm_error→ {role:system, kind:llm_error}:调模型失败,前端淡红行。
-    observe 的原始 prompt 不进时间线(太长),由前端挂到消息上点开看。
-    返回 [{role,text,ts,kind?,count?}],正序。
+    返回 [{role,text,ts,kind?,prompt?,trigger?}],正序。
     """
     if not log_file.exists():
         return []
@@ -343,14 +342,17 @@ def read_history(limit: int = 50, log_file=LOG_FILE) -> list:
             elif kind == "speak":
                 out.append({"role": "ai", "text": e.get("text", ""),
                             "ts": e.get("ts")})
+            elif kind == "observe":
+                # 一次旁观判断:AI 看了啥(prompt 原文)+ 被什么触发,全展开
+                out.append({"role": "system", "kind": "observe",
+                            "text": "",
+                            "prompt": e.get("prompt", ""),
+                            "trigger": e.get("trigger"),
+                            "ts": e.get("ts")})
             elif kind == "silent":
-                # 连续沉默合并:上一条若也是 silent,只加计数、改时间,不新增行
-                if out and out[-1].get("kind") == "silent":
-                    out[-1]["count"] = out[-1].get("count", 1) + 1
-                    out[-1]["ts"] = e.get("ts")
-                else:
-                    out.append({"role": "system", "kind": "silent",
-                                "text": "", "count": 1, "ts": e.get("ts")})
+                out.append({"role": "system", "kind": "silent",
+                            "text": e.get("reason", "模型判断沉默"),
+                            "ts": e.get("ts")})
             elif kind == "llm_error":
                 out.append({"role": "system", "kind": "llm_error",
                             "text": e.get("error", "模型调用失败"),

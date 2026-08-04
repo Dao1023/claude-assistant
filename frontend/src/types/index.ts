@@ -152,10 +152,12 @@ export interface AiHistoryEntry {
   role: 'user' | 'ai' | 'system'
   text: string
   ts?: number
-  /** system 行细分:silent=AI 选择沉默 / llm_error=模型调用失败 */
-  kind?: 'silent' | 'llm_error'
-  /** silent 合并计数:连续几次沉默并成一条 */
-  count?: number
+  /** system 行细分:observe=一次判断 / silent=选择沉默 / llm_error=模型失败 */
+  kind?: 'observe' | 'silent' | 'llm_error'
+  /** observe: AI 当时看到的完整上下文(任务清单+事件流原文),前端全展开 */
+  prompt?: string
+  /** observe: 触发这次判断的事件 */
+  trigger?: Record<string, unknown>
 }
 
 /** GET /api/ai/history 返回(正序,最新在尾) */

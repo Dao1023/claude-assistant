@@ -226,47 +226,45 @@ def test_read_history_filters_dialog(tmp_path):
     log = tmp_path / "log.jsonl"
     _write_log(log, [
         {"ts": 1, "kind": "user_reply", "text": "你好"},
-        {"ts": 2, "kind": "observe", "trigger": {}},          # 非对话,滤掉
+        {"ts": 2, "kind": "observe", "trigger": {}},          # 旁观判断,也进时间线
         {"ts": 3, "kind": "speak", "text": "你好呀"},
         {"ts": 4, "kind": "user_reply", "text": "看任务"},
         {"ts": 5, "kind": "speak", "text": "今天有日语"},
     ])
     hist = agent_mod.read_history(log_file=log)
-    assert [h["role"] for h in hist] == ["user", "ai", "user", "ai"]  # 正序
+    # user/observe(system)/ai/user/ai,正序
+    assert [h["role"] for h in hist] == ["user", "system", "ai", "user", "ai"]
     assert hist[0]["text"] == "你好"
     assert hist[-1]["text"] == "今天有日语"
 
 
-def test_read_history_merges_consecutive_silent(tmp_path):
-    """连续多条 silent 合并成一条系统行,count 记次数。"""
+def test_read_history_includes_observe_with_prompt(tmp_path):
+    """observe 进时间线,带完整 prompt 和触发事件,前端全展开。"""
     log = tmp_path / "log.jsonl"
     _write_log(log, [
-        {"ts": 1, "kind": "speak", "text": "该动动了"},
-        {"ts": 2, "kind": "silent", "reason": "x"},
-        {"ts": 3, "kind": "silent", "reason": "x"},
-        {"ts": 4, "kind": "silent", "reason": "x"},
-        {"ts": 5, "kind": "user_reply", "text": "嗯"},
+        {"ts": 1, "kind": "observe", "prompt": "任务清单...\n最新事件...",
+         "trigger": {"type": "snooze"}},
+        {"ts": 2, "kind": "speak", "text": "该动动了"},
     ])
     hist = agent_mod.read_history(log_file=log)
-    assert [h["role"] for h in hist] == ["ai", "system", "user"]
-    silent = hist[1]
-    assert silent["kind"] == "silent"
-    assert silent["count"] == 3                 # 三条合并
-    assert silent["ts"] == 4                    # 时间跟到最后一条
+    assert [h["role"] for h in hist] == ["system", "ai"]
+    obs = hist[0]
+    assert obs["kind"] == "observe"
+    assert "任务清单" in obs["prompt"]           # 完整 prompt 带出来
+    assert obs["trigger"] == {"type": "snooze"}
 
 
-def test_read_history_silent_not_merged_across_other(tmp_path):
-    """被别的消息断开的 silent 不合并,各算各的。"""
+def test_read_history_silent_each_own_row(tmp_path):
+    """silent 不合并,每次判断各占一行。"""
     log = tmp_path / "log.jsonl"
     _write_log(log, [
-        {"ts": 1, "kind": "silent", "reason": "x"},
-        {"ts": 2, "kind": "speak", "text": "说一句"},
-        {"ts": 3, "kind": "silent", "reason": "x"},
+        {"ts": 1, "kind": "silent", "reason": "模型判断沉默"},
+        {"ts": 2, "kind": "silent", "reason": "模型判断沉默"},
     ])
     hist = agent_mod.read_history(log_file=log)
     silents = [h for h in hist if h.get("kind") == "silent"]
     assert len(silents) == 2
-    assert all(s["count"] == 1 for s in silents)
+    assert all(s["role"] == "system" for s in silents)
 
 
 def test_read_history_includes_llm_error(tmp_path):
