@@ -11,6 +11,7 @@
  */
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { marked } from 'marked'
 import {
   doneTask,
   fetchAiLog,
@@ -85,6 +86,21 @@ function remove(id: string) {
 }
 
 // ---- AI 对话 ----
+
+// marked:换行即 <br>(gfm 默认要两个空格才换行,聊天里不直观);async:false 同步解析
+marked.use({ breaks: true, gfm: true })
+
+/**
+ * AI 气泡渲染为 Markdown HTML。marked 不消毒,这里剥掉危险标签/属性兜底
+ * (内容是本地 AI 返回,风险低,但 v-html 就得上保险)。用户消息不走这,纯文本。
+ */
+function renderMd(text: string): string {
+  const html = marked.parse(text, { async: false }) as string
+  return html
+    .replace(/<\/?(script|iframe|object|embed|form|link|meta)[^>]*>/gi, '')
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')   // on*= 事件属性
+    .replace(/(href|src)\s*=\s*(["']?)\s*javascript:[^"'>]*\2/gi, '$1="#"')
+}
 
 function pushChat(role: 'ai' | 'user', text: string, ts?: number) {
   chat.value.push({ role, text, ts: ts ?? Date.now() / 1000 })
@@ -288,7 +304,9 @@ onUnmounted(() => {
             class="np-msg"
             :class="m.role"
           >
-            <div class="np-bubble">{{ m.text }}</div>
+            <!-- AI 气泡渲染 Markdown;用户气泡保持纯文本 -->
+            <div v-if="m.role === 'ai'" class="np-bubble np-md" v-html="renderMd(m.text)"></div>
+            <div v-else class="np-bubble">{{ m.text }}</div>
             <span class="np-msg-time">{{ fmtTime(m.ts) }}</span>
           </div>
         </div>
@@ -564,6 +582,8 @@ onUnmounted(() => {
   font-size: 13px;
   line-height: 1.5;
   word-break: break-word;
+  /* 保留换行(用户气泡纯文本 / AI 气泡纯文本回退时);AI 走 Markdown 时由 marked 管换行 */
+  white-space: pre-wrap;
   /* 正文可选中复制(easy_drag 已关,天然可选;显式声明保险) */
   user-select: text;
   cursor: text;
@@ -572,6 +592,43 @@ onUnmounted(() => {
   background: #f0f4f9;
   color: #2c3e50;
   border-top-left-radius: 2px;
+}
+/* AI 气泡里的 Markdown:收紧 marked 生成的块级元素边距,贴合气泡 */
+.np-md {
+  white-space: normal;    /* marked 已用 <br>/<p> 管换行,别再 pre-wrap 显形 HTML 里的换行 */
+}
+.np-md :deep(p) {
+  margin: 0 0 6px;
+}
+.np-md :deep(p:last-child) {
+  margin-bottom: 0;
+}
+.np-md :deep(ul),
+.np-md :deep(ol) {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+.np-md :deep(li) {
+  margin: 2px 0;
+}
+.np-md :deep(strong) {
+  color: #1a4a7a;
+}
+.np-md :deep(h1),
+.np-md :deep(h2),
+.np-md :deep(h3),
+.np-md :deep(h4) {
+  margin: 8px 0 4px;
+  font-size: 13px;
+}
+.np-md :deep(code) {
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 3px;
+  padding: 0 3px;
+  font-size: 12px;
+}
+.np-md :deep(a) {
+  color: #4a8ac8;
 }
 .np-msg.user .np-bubble {
   background: #5b9bd5;
