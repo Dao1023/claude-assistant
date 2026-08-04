@@ -122,9 +122,9 @@ class Agent:
         if event.get("type") == "ai_message":
             return
         self._remember(event)
-        # 只在「值得判断」的事件上调用模型:推迟/完成是关键信号;
-        # notify 攒着,等够一批再判断(省钱,且单次推送说明不了什么)
-        if event.get("type") in ("snooze", "done"):
+        # 通知来了就判断(notify 是最强信号:有事到期该催了);
+        # 推迟/完成也是关键信号。这三类都喂给模型,该不该开口由它定。
+        if event.get("type") in ("notify", "snooze", "done"):
             self._maybe_speak(trigger=event)
 
     # ---- 记忆 ----

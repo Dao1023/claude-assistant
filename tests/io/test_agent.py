@@ -1,7 +1,7 @@
 """测试:AI 旁观 Agent(io/agent)——旁观→判断→开口→记日志 全链路,不碰真模型。
 
 用 MockBackend 替代真 DeepSeek;事件手工构造喂 queue。断言:
-- 关键事件(snooze/done)触发判断,模型说话则 publish ai_message + 记日志;
+- 关键事件(notify/snooze/done)触发判断,模型说话则 publish ai_message + 记日志;
 - 模型沉默(SILENT)则不发事件;
 - 工作记忆持久化到 JSON;
 - 调用过程写 JSONL 日志;
@@ -101,11 +101,13 @@ def test_memory_capped(agt):
     assert len(agt._memory) == agent_mod.MAX_MEMORY_EVENTS
 
 
-def test_notify_does_not_trigger_judge(agt, published):
-    """notify 只攒记忆,不单独触发判断(省钱,单次推送说明不了什么)。"""
+def test_notify_triggers_judge(agt, published):
+    """通知来了就判断:notify 是最强信号(有事到期),不再等用户操作。"""
     agt._handle({"type": "notify", "ts": 1,
                  "tasks": [{"id": "t1", "title": "写报告", "stage": "gentle"}]})
-    assert published == []
+    # Mock 默认开口 → 应发 ai_message
+    msgs = [p for t, p in published if t == "ai_message"]
+    assert msgs, "notify 应触发判断并开口"
     assert len(agt._memory) == 1
 
 
