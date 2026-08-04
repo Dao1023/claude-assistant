@@ -11,8 +11,11 @@
 | [task-system.md](task-system.md) | 任务系统:start/end 双驱动、周期修饰符、log 重要性算法、任务核心属性 |
 | [lifecycle.md](lifecycle.md) | 推送生命周期(挂在任务上)+ 三档催促 + 防过载节流 |
 | [storage.md](storage.md) | 存储选型:为什么 JSON → SQLite,与 Claude Code 的通信方式 |
+| [agent.md](agent.md) | **AI Agent(第四层)**:现状、敷衍问题诊断、五层重构蓝图、工程要点、Roadmap |
 
-> 阅读顺序:requirements(想做什么)→ architecture(怎么分工)→ task-system / lifecycle(两块核心)→ storage(数据怎么存)。
+> 阅读顺序:requirements(想做什么)→ architecture(怎么分工)→ task-system / lifecycle(两块核心)→ storage(数据怎么存)→ agent(AI 层)。
+>
+> 外部设计参考(非本系统设计)在 [reference/](reference/);superpowers 工具的过程产物在 superpowers/。
 
 ## 为什么从 V1 升级到 V2
 
