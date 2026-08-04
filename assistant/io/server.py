@@ -416,5 +416,7 @@ def run(port: int):
     服务永远起不来。面板服务本就不需要 uvicorn 的访问日志。
     """
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=port,
+    # 绑 0.0.0.0:默认对局域网开放(手机/同 WiFi 设备可访问面板)。
+    # 本地 pywebview 浮窗仍用 127.0.0.1 加载页面(notify_window.py),不受影响。
+    uvicorn.run(app, host="0.0.0.0", port=port,
                 log_level="warning", log_config=None)
