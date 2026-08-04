@@ -172,9 +172,14 @@ function hideWindow() {
   }
 }
 
-/** Esc = 点 ×(隐藏浮窗)。 */
+/** Esc = 点 ×(隐藏浮窗);Ctrl+R = 重载页面(浮窗只隐藏不销毁,需手动刷新拿新构建)。 */
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') hideWindow()
+  if (e.key === 'Escape') {
+    hideWindow()
+  } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r') {
+    e.preventDefault()               // 拦住默认(某些环境默认 reload 不可靠),统一走 location
+    location.reload()
+  }
 }
 
 async function snoozeAll() {
@@ -210,7 +215,7 @@ onUnmounted(() => {
     <div class="np-head pywebview-drag-region">
       <span class="np-title">🔔 弹窗</span>
       <span v-if="tasks.length" class="np-count">{{ tasks.length }}</span>
-      <button class="np-close" title="隐藏(有通知再弹)" @click="hideWindow">×</button>
+      <button class="np-close" title="隐藏(Esc;有通知再弹)。Ctrl+R 重载拿新构建" @click="hideWindow">×</button>
     </div>
 
     <div class="np-cols">
