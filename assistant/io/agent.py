@@ -312,10 +312,16 @@ def read_log(limit: int = 100, log_file=LOG_FILE) -> list:
 
 
 def read_history(limit: int = 50, log_file=LOG_FILE) -> list:
-    """从日志滤出对话流(正序,供浮窗重载后回填历史)。
+    """从日志滤出对话时间线(正序,供浮窗重载后回填)。
 
-    对话 = user_reply(你说)+ speak(AI 说,主动 nudge 和接话 reply 都算);
-    observe/silent/llm_error 等判断过程不进对话。返回 [{role,text,ts}],正序。
+    时间线 = 一条流,不再分「对话」和「AI 上下文」两个视图:
+    - user_reply → {role:user};speak → {role:ai}(主动 nudge 和接话都算);
+    - silent   → {role:system, kind:silent}:AI 看了但选择沉默。连续多条沉默
+                 合并成一条,count 记次数,前端渲染成一行淡灰「已静默 N 次」,
+                 免得旁观刷屏;
+    - llm_error→ {role:system, kind:llm_error}:调模型失败,前端淡红行。
+    observe 的原始 prompt 不进时间线(太长),由前端挂到消息上点开看。
+    返回 [{role,text,ts,kind?,count?}],正序。
     """
     if not log_file.exists():
         return []
@@ -336,6 +342,18 @@ def read_history(limit: int = 50, log_file=LOG_FILE) -> list:
                             "ts": e.get("ts")})
             elif kind == "speak":
                 out.append({"role": "ai", "text": e.get("text", ""),
+                            "ts": e.get("ts")})
+            elif kind == "silent":
+                # 连续沉默合并:上一条若也是 silent,只加计数、改时间,不新增行
+                if out and out[-1].get("kind") == "silent":
+                    out[-1]["count"] = out[-1].get("count", 1) + 1
+                    out[-1]["ts"] = e.get("ts")
+                else:
+                    out.append({"role": "system", "kind": "silent",
+                                "text": "", "count": 1, "ts": e.get("ts")})
+            elif kind == "llm_error":
+                out.append({"role": "system", "kind": "llm_error",
+                            "text": e.get("error", "模型调用失败"),
                             "ts": e.get("ts")})
         return out[-limit:]                  # 只留最近 limit 条,正序
     except Exception:

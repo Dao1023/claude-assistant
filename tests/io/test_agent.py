@@ -228,14 +228,57 @@ def test_read_history_filters_dialog(tmp_path):
         {"ts": 1, "kind": "user_reply", "text": "你好"},
         {"ts": 2, "kind": "observe", "trigger": {}},          # 非对话,滤掉
         {"ts": 3, "kind": "speak", "text": "你好呀"},
-        {"ts": 4, "kind": "silent", "reason": "x"},            # 非对话,滤掉
-        {"ts": 5, "kind": "user_reply", "text": "看任务"},
-        {"ts": 6, "kind": "speak", "text": "今天有日语"},
+        {"ts": 4, "kind": "user_reply", "text": "看任务"},
+        {"ts": 5, "kind": "speak", "text": "今天有日语"},
     ])
     hist = agent_mod.read_history(log_file=log)
     assert [h["role"] for h in hist] == ["user", "ai", "user", "ai"]  # 正序
     assert hist[0]["text"] == "你好"
     assert hist[-1]["text"] == "今天有日语"
+
+
+def test_read_history_merges_consecutive_silent(tmp_path):
+    """连续多条 silent 合并成一条系统行,count 记次数。"""
+    log = tmp_path / "log.jsonl"
+    _write_log(log, [
+        {"ts": 1, "kind": "speak", "text": "该动动了"},
+        {"ts": 2, "kind": "silent", "reason": "x"},
+        {"ts": 3, "kind": "silent", "reason": "x"},
+        {"ts": 4, "kind": "silent", "reason": "x"},
+        {"ts": 5, "kind": "user_reply", "text": "嗯"},
+    ])
+    hist = agent_mod.read_history(log_file=log)
+    assert [h["role"] for h in hist] == ["ai", "system", "user"]
+    silent = hist[1]
+    assert silent["kind"] == "silent"
+    assert silent["count"] == 3                 # 三条合并
+    assert silent["ts"] == 4                    # 时间跟到最后一条
+
+
+def test_read_history_silent_not_merged_across_other(tmp_path):
+    """被别的消息断开的 silent 不合并,各算各的。"""
+    log = tmp_path / "log.jsonl"
+    _write_log(log, [
+        {"ts": 1, "kind": "silent", "reason": "x"},
+        {"ts": 2, "kind": "speak", "text": "说一句"},
+        {"ts": 3, "kind": "silent", "reason": "x"},
+    ])
+    hist = agent_mod.read_history(log_file=log)
+    silents = [h for h in hist if h.get("kind") == "silent"]
+    assert len(silents) == 2
+    assert all(s["count"] == 1 for s in silents)
+
+
+def test_read_history_includes_llm_error(tmp_path):
+    log = tmp_path / "log.jsonl"
+    _write_log(log, [
+        {"ts": 1, "kind": "speak", "text": "在吗"},
+        {"ts": 2, "kind": "llm_error", "error": "连接超时"},
+    ])
+    hist = agent_mod.read_history(log_file=log)
+    assert [h["role"] for h in hist] == ["ai", "system"]
+    assert hist[1]["kind"] == "llm_error"
+    assert hist[1]["text"] == "连接超时"
 
 
 def test_read_history_respects_limit(tmp_path):
