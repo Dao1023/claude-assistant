@@ -164,12 +164,12 @@ const snoozeOptions = ref<SnoozeOption[]>([])
 /** 自定义推迟时间('YYYY-MM-DD HH:mm') */
 const customUntil = ref('')
 
-/** 打开推迟选择:拉预设选项 */
+/** 打开推迟选择:按当前任务拉预设(start=预期×系数,end=剩余×系数) */
 async function openSnooze() {
   snoozeVisible.value = true
   customUntil.value = ''
   try {
-    const res = await fetchSnoozeOptions()
+    const res = await fetchSnoozeOptions(detail.value?.id)
     snoozeOptions.value = res.options
   } catch (err) {
     ElMessage.error(err instanceof Error ? err.message : '加载推迟选项失败')
@@ -193,11 +193,9 @@ async function doSnooze(until?: string) {
   }
 }
 
-/** 选预设:until 是 Unix 秒,转 'YYYY-MM-DD HH:mm' */
-function pickPreset(ts: number) {
-  const d = new Date(ts * 1000)
-  const p = (n: number) => String(n).padStart(2, '0')
-  doSnooze(`${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`)
+/** 选预设:until 已是 'YYYY-MM-DD HH:mm' 边界字符串,直接透传(与弹窗同源) */
+function pickPreset(until: string) {
+  doSnooze(until)
 }
 
 /** 取消推迟:恢复正常催促,刷新详情 */
