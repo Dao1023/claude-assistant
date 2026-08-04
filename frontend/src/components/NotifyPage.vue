@@ -390,6 +390,9 @@ onUnmounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   min-height: 0;
+  /* 正文统一可选:对话/过程面板/待办,按住都能框选复制。
+     唯一不可选的是顶部拖拽把手(.np-head 单独 user-select:none)。 */
+  user-select: text;
 }
 .np-col-title {
   font-size: 13px;
@@ -474,6 +477,9 @@ onUnmounted(() => {
   max-height: 80px;
   overflow-y: auto;
   margin: 4px 0 0;
+  /* 显式开选择:pre 默认不继承,这里补死,确保 prompt 原文可复制 */
+  user-select: text;
+  cursor: text;
 }
 
 /* AI 对话流 */
