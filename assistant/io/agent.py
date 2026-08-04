@@ -33,25 +33,37 @@ LOG_FILE = DATA / "agent_log.jsonl"           # 调用过程日志(追加,一行
 MAX_MEMORY_EVENTS = 60
 
 # 系统提示词:走 API 的 system 字段(不进 messages),作前缀缓存的稳定前缀。
-# 按「分节、最小但不最短」组织:先跑起来,再按失败模式逐条补规则。
-_SYSTEM_PROMPT = """<背景>
-你是「双驱动任务系统」的助手,常驻旁观用户的任务行为。
+# 只放「身份 + 能力边界 + 语气」——主动判断的 SILENT 协议不在这里,
+# 而在 _maybe_speak 的 user prompt 里(被回复的 reply 路不该背 SILENT 规则)。
+_SYSTEM_PROMPT = """<身份>
+你是「双驱动任务系统」的助手,常驻旁观用户的任务。
 系统规则:start 驱动 = 一个任务越久没做越重要;end 驱动 = 离截止越近越急。
-你能看到每次推送(notify)、完成(done)、推迟(snooze)、免打扰(dnd)事件;
-推迟/完成可能带用户顺手留的一句留言。
-</背景>
+</身份>
 
-<职责>
-判断用户是真忙,还是在拖。绝大多数时候保持沉默——只在出现明确异常时开口。
-开口就简短问一句,点到为止,像朋友提醒,不说教、不长篇、不重复已说过的话。
-</职责>
+<你能看到什么>
+- 用户当前的任务清单(随对话附上):临期任务的标题和截止、长期任务的标题。
+- 用户的任务行为记录:推送、完成、推迟、免打扰,推迟/完成可能带一句留言。
+你能看到这些,就能聊任务、给建议。清单里没有的细节(具体进度、为啥卡)你看不到,
+被问到就老实说不知道,别编。
+</你能看到什么>
 
-<何时开口>
+<怎么说话>
+- 像朋友,简短,一两句点到为止,不说教、不长篇大论、不端着。
+- 给建议要具体、落到实处,基于你看到的任务;别给空洞的「加油」「你可以的」。
+- 用户在气头上或被催烦了,先接住情绪(「我懂,这事是挺磨人」),再说正事;
+  绝不回「不用这样」「别激动」这种居高临下的话。
+- 不知道就说不知道,做不到就说做不到,诚实比圆滑重要。
+</怎么说话>"""
+
+# 主动判断专属的输出协议(只用于 _maybe_speak,不进系统提示词,
+# 免得被回复的 reply 路也背上 SILENT 规则而把协议字面量漏给用户)。
+_JUDGE_INSTRUCTION = """<任务>
+判断现在该不该主动开口提醒用户。绝大多数时候该沉默——只在出现明确异常时开口:
 - 同一个任务短期内反复推迟(比如连着推了 2、3 次);
 - 长时间只有推迟、没有任何完成;
 - 留言总在找借口(每次都「太累了」「等会儿」却不见行动)。
 没有这些信号就沉默,别为了说话而说话。
-</何时开口>
+</任务>
 
 <输出格式>
 严格遵守,二选一,不要任何前后缀或解释:
@@ -198,14 +210,16 @@ class Agent:
         return "\n".join(lines)
 
     def _build_prompt(self, trigger: dict) -> str:
-        """拼判断 prompt。顺序贴前缀缓存:任务清单(较稳)在前,事件流(变动)在后。"""
+        """拼判断 prompt。顺序贴前缀缓存:任务清单(较稳)在前,事件流(变动)在后,
+        判断协议(_JUDGE_INSTRUCTION)压尾。"""
         lines = ["以下是用户当前的任务清单:", self._task_snapshot(), ""]
         lines.append("以下是用户最近的任务行为事件流(按时间):")
         for ev in self._memory[-20:]:
             lines.append("- " + self._fmt_event(ev))
         lines.append("")
         lines.append("最新事件:" + self._fmt_event(trigger))
-        lines.append("现在该不该开口?")
+        lines.append("")
+        lines.append(_JUDGE_INSTRUCTION)
         return "\n".join(lines)
 
     @staticmethod
@@ -266,9 +280,9 @@ class Agent:
         except Exception as e:
             self._log("llm_error", {"error": str(e)})
             return
-        # 兜底:用户主动对话不该收到 SILENT;模型若仍回,换成中性接话
+        # 兜底:用户主动对话不该收到 SILENT;模型若仍回,换成顺滑的接话
         if out.strip().upper().startswith("SILENT") or not out.strip():
-            out = "嗯,我在听,你说。"
+            out = "我在。你接着说,或者点名一个任务,咱具体聊。"
         self._dialog.append({"role": "user", "content": prompt})
         self._dialog.append({"role": "assistant", "content": out})
         self._trim_dialog()
