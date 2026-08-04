@@ -1,5 +1,6 @@
 import type {
   AddTaskPayload,
+  AiHistoryResponse,
   AiLogResponse,
   EditableSetting,
   FunnelResponse,
@@ -181,6 +182,15 @@ export async function fetchAiLog(limit = 100): Promise<AiLogResponse> {
     throw new Error(`请求失败:${res.status} ${res.statusText}`)
   }
   return (await res.json()) as AiLogResponse
+}
+
+/** 拉取对话历史(供浮窗重载后回填对话流)。正序,只含 user/ai 两类。 */
+export async function fetchAiHistory(limit = 50): Promise<AiHistoryResponse> {
+  const res = await fetch(`/api/ai/history?limit=${limit}`, { headers: { Accept: 'application/json' } })
+  if (!res.ok) {
+    throw new Error(`请求失败:${res.status} ${res.statusText}`)
+  }
+  return (await res.json()) as AiHistoryResponse
 }
 
 /** 用户在浮窗回 AI 一句。 */

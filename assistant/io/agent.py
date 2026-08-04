@@ -311,6 +311,37 @@ def read_log(limit: int = 100, log_file=LOG_FILE) -> list:
         return []
 
 
+def read_history(limit: int = 50, log_file=LOG_FILE) -> list:
+    """从日志滤出对话流(正序,供浮窗重载后回填历史)。
+
+    对话 = user_reply(你说)+ speak(AI 说,主动 nudge 和接话 reply 都算);
+    observe/silent/llm_error 等判断过程不进对话。返回 [{role,text,ts}],正序。
+    """
+    if not log_file.exists():
+        return []
+    try:
+        lines = log_file.read_text(encoding="utf-8").splitlines()
+        out = []
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                e = json.loads(line)
+            except Exception:
+                continue
+            kind = e.get("kind")
+            if kind == "user_reply":
+                out.append({"role": "user", "text": e.get("text", ""),
+                            "ts": e.get("ts")})
+            elif kind == "speak":
+                out.append({"role": "ai", "text": e.get("text", ""),
+                            "ts": e.get("ts")})
+        return out[-limit:]                  # 只留最近 limit 条,正序
+    except Exception:
+        return []
+
+
 def get_agent() -> Agent:
     global _agent
     if _agent is None:

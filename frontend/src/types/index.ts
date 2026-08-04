@@ -167,6 +167,18 @@ export interface AiLogResponse {
   entries: AiLogEntry[]
 }
 
+/** 对话历史一条(供浮窗重载后回填对话流)。role: user=你说 / ai=AI 说 */
+export interface AiHistoryEntry {
+  role: 'user' | 'ai'
+  text: string
+  ts?: number
+}
+
+/** GET /api/ai/history 返回(正序,最新在尾) */
+export interface AiHistoryResponse {
+  entries: AiHistoryEntry[]
+}
+
 /** 新增任务表单(POST /api/tasks)。drive 创建时定死。 */
 export interface AddTaskPayload {
   title: string

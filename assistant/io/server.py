@@ -307,6 +307,12 @@ def create_app() -> FastAPI:
         from . import agent as agent_mod
         return {"entries": agent_mod.read_log(limit)}
 
+    @app.get("/api/ai/history")
+    def api_ai_history(limit: int = 50):
+        """对话历史(供浮窗重载后回填)。正序,只含 user_reply/speak。"""
+        from . import agent as agent_mod
+        return {"entries": agent_mod.read_history(limit)}
+
     @app.post("/api/ai/reply")
     def api_ai_reply(body: AiReplyIn):
         """用户在浮窗回 AI 一句:转发给 Agent 接话。"""

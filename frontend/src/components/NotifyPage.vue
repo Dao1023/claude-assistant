@@ -14,6 +14,7 @@ import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
 import {
   doneTask,
+  fetchAiHistory,
   fetchAiLog,
   fetchSnoozeOptions,
   replyAi,
@@ -252,6 +253,15 @@ onMounted(() => {
   connect()
   fetchSnoozeOptions().then((r) => (options.value = r.options)).catch(() => {})
   window.addEventListener('keydown', onKeydown)   // Esc 隐藏
+  // 回填历史对话:浮窗重载后 chat 从后端日志恢复,之后 /ws 增量追加
+  fetchAiHistory(50)
+    .then((r) => {
+      chat.value = r.entries.map((e) => ({ role: e.role, text: e.text, ts: e.ts ?? Date.now() / 1000 }))
+      // 历史里的用户消息也进 ↑↓ 翻历史栈
+      history.value = r.entries.filter((e) => e.role === 'user').map((e) => e.text)
+      nextTick(() => chatListEl.value?.scrollTo({ top: chatListEl.value.scrollHeight }))
+    })
+    .catch(() => {})
 })
 onUnmounted(() => {
   window.clearTimeout(retryTimer)
