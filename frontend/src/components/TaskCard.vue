@@ -36,7 +36,7 @@ const importanceText = computed(() => props.importance.toFixed(2))
       <span class="imp-badge" :class="importanceClass">{{ importanceText }}</span>
     </div>
 
-    <div class="mt-2 flex items-center justify-between gap-2">
+    <div class="mt-1 md:mt-2 flex items-center justify-between gap-2">
       <span class="task-footer">{{ footer }}</span>
       <div v-if="tags.length" class="flex flex-wrap justify-end gap-1">
         <span v-for="t in tags" :key="t" class="tag-chip">#{{ t }}</span>
@@ -60,6 +60,16 @@ const importanceText = computed(() => props.importance.toFixed(2))
 .task-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-1px);
+}
+
+/* 手机:卡片高度收紧,不浪费纵向空间(桌面不变) */
+@media (max-width: 767px) {
+  .task-card {
+    padding: 8px 12px;
+  }
+  .task-title {
+    line-height: 1.3;
+  }
 }
 
 .task-title {
