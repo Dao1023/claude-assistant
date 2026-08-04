@@ -4,14 +4,18 @@
 改为:浮窗只是个壳,内容是 FastAPI 的 /notify 页(复用面板 Vue 前端),
 按钮走已测过的 REST API。样式/交互归前端,本模块只管窗口生命周期。
 
-线程模型(与原 tkinter 同构,故托盘/调度/面板子线程不用动):
-- 主线程:webview.start() GUI 事件循环(start_ui,阻塞)。
-- 开窗信号经队列 _requests 从任意线程(调度/pusher)传入;消费线程取出后开窗。
-
 常驻单例 + 隐藏切换(关键):
 pywebview 的 start() 之前必须先建至少一个窗口,故启动时建一个 hidden 窗;
 有通知 show()、用户点关闭则拦截改为 hide()——窗口常驻不销毁,start() 循环不退。
-这正好契合「单例复用」:一个窗,通知来了显示,处理完隐藏,下次通知再显示。
+
+线程模型(核心架构,别再乱碰):
+窗口对象 _win 只能被一个线程碰——专属的「窗口操作 worker」线程。
+pywebview 的 show/hide/on_top 全是「封送到 winforms GUI 线程并阻塞等它」的
+同步调用:GUI 线程一旦繁忙(渲染页面/处理上一个 Invoke),任何线程的同步
+窗口调用都会死锁(曾实锤:_consume 卡在 on_top 的 set_on_top 封送)。
+故:js_api 回调、closing 事件、外部 show() 一律只往队列 put 意图,
+由 worker 线程串行取出执行——worker 卡了只是 worker 卡,GUI 主线程的消息泵
+永远空闲、永远能响应,窗口不可能 Not Responding。
 """
 import queue
 import threading
@@ -23,8 +27,8 @@ from ..config import WEB_PORT
 _W, _H = 720, 560          # 浮窗尺寸(无框,两列:AI 对话 + 待办,内容自适应滚动)
 _MARGIN = 16
 
-_requests = queue.Queue()  # 跨线程开窗信号(内容无需携带,前端拉数据)
-_win = None                # 常驻通知窗(Window,创建后不销毁)
+_ops = queue.Queue()       # 窗口操作意图队列:'show' / 'hide'
+_win = None                # 常驻通知窗(Window,创建后不销毁;只有 worker 线程碰)
 _ready = threading.Event() # GUI 循环已启动、窗口已建
 
 
@@ -40,8 +44,8 @@ def _position():
     return x, y
 
 
-def _show():
-    """显示浮窗并置顶(由消费线程在收到信号时调;窗口已建,只切换可见性)。"""
+def _do_show():
+    """实际显示浮窗并置顶(仅 worker 线程调;窗口已建,只切换可见性)。"""
     if _win is None:
         return
     try:
@@ -51,34 +55,44 @@ def _show():
         print(f"[notify_window] 显示失败: {e}")
 
 
-def _consume():
-    """消费开窗信号:阻塞等信号,收到则显示常驻浮窗。"""
-    _ready.wait()                    # 等 GUI 起来、窗口建好
+def _do_hide():
+    """实际隐藏浮窗(仅 worker 线程调)。"""
+    if _win is None:
+        return
+    try:
+        _win.hide()
+    except Exception as e:
+        print(f"[notify_window] 隐藏失败: {e}")
+
+
+def _op_worker():
+    """窗口操作专属线程:串行消费意图,唯一被允许碰 _win 的业务线程。
+
+    等 GUI 起来再开工;每个意图都是一次封送到 GUI 线程的同步调用,
+    串行执行互不交错;某个操作真卡了,也只是本线程卡,GUI 主线程照常响应。
+    """
+    _ready.wait()
+    handlers = {"show": _do_show, "hide": _do_hide}
     while True:
-        _requests.get()
-        _show()
+        op = _ops.get()
+        fn = handlers.get(op)
+        if fn is not None:
+            fn()
 
 
 def show():
-    """从任意线程请求弹出通知浮窗(幂等)。"""
-    _requests.put(True)
+    """从任意线程请求弹出通知浮窗(幂等)。只投意图,不直接碰窗口。"""
+    _ops.put("show")
 
 
-def _hide_async():
-    """在独立线程里 hide,避开 winforms 后端的自死锁。
-
-    根因:winforms 的 hide() 无脑 self.Invoke(...)(无 InvokeRequired 判断)。
-    若在 GUI 线程上下文(js_api 回调/closing 事件)同步调,GUI 线程向自己
-    封送并阻塞等自己处理 → 自死锁,窗口 Not Responding。甩到一次性线程里,
-    Invoke 走正常跨线程封送,GUI 线程空闲可处理,即解。
-    """
-    threading.Thread(target=lambda: _win and _win.hide(), daemon=True).start()
+def hide():
+    """从任意线程请求隐藏浮窗(幂等)。只投意图,不直接碰窗口。"""
+    _ops.put("hide")
 
 
 def _on_closing():
     """用户点关闭:不销毁,改为隐藏(窗口常驻,下次通知再 show)。"""
-    if _win is not None:
-        _hide_async()
+    hide()
     return False                     # 阻止默认关闭(销毁)
 
 
@@ -89,12 +103,11 @@ class _JsApi:
     frameless 下 close 的不确定行为。前端 window.pywebview.api.hide()。
     """
     def hide(self):
-        if _win is not None:
-            _hide_async()
+        hide()
 
 
 def start_ui():
-    """主线程入口:建常驻浮窗(先隐藏)+ 起 GUI 循环(阻塞)。
+    """主线程入口:建常驻浮窗(先隐藏)+ 起 worker + 起 GUI 循环(阻塞)。
 
     托盘/调度/看门在子线程,先就绪再调本函数。
     """
@@ -108,6 +121,6 @@ def start_ui():
         js_api=_JsApi(),
     )
     _win.events.closing += _on_closing
+    threading.Thread(target=_op_worker, daemon=True, name="win-op").start()
     _ready.set()
-    threading.Thread(target=_consume, daemon=True).start()
     webview.start()
