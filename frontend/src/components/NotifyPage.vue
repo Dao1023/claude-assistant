@@ -22,6 +22,7 @@ import {
   snoozeTask,
   updateSettings,
 } from '@/api/client'
+import { playNotifySound } from '@/api/sound'
 import type { SnoozeOption, WillPushTask } from '@/types'
 
 const tasks = ref<WillPushTask[]>([])
@@ -119,6 +120,7 @@ function handle(ev: {
   text?: string; kind?: string; ts?: number
 }) {
   if (ev.type === 'notify' && ev.tasks) {
+    playNotifySound()                          // 通知来了先响一声(可在设置关)
     for (const t of ev.tasks) {
       if (!tasks.value.some((x) => x.id === t.id)) tasks.value.push(t)
     }
