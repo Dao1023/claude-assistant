@@ -68,7 +68,12 @@ function applySize() {
     try {
       await updateSettings({ window_width: sizeW.value, window_height: sizeH.value })
       const api = (window as unknown as { pywebview?: { api?: { resize?: (w: number, h: number) => void } } }).pywebview?.api
-      api?.resize?.(sizeW.value, sizeH.value)
+      if (api?.resize) {
+        api.resize(sizeW.value, sizeH.value)
+      } else {
+        // 服务是旧进程(新 resize 未加载)时给个明白提示,别静默无反应
+        ElMessage.warning('尺寸已保存,重启服务后生效')
+      }
     } catch (err) {
       ElMessage.error(err instanceof Error ? err.message : '保存失败')
     }
