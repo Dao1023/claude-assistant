@@ -64,10 +64,21 @@ def show():
     _requests.put(True)
 
 
+def _hide_async():
+    """在独立线程里 hide,避开 winforms 后端的自死锁。
+
+    根因:winforms 的 hide() 无脑 self.Invoke(...)(无 InvokeRequired 判断)。
+    若在 GUI 线程上下文(js_api 回调/closing 事件)同步调,GUI 线程向自己
+    封送并阻塞等自己处理 → 自死锁,窗口 Not Responding。甩到一次性线程里,
+    Invoke 走正常跨线程封送,GUI 线程空闲可处理,即解。
+    """
+    threading.Thread(target=lambda: _win and _win.hide(), daemon=True).start()
+
+
 def _on_closing():
     """用户点关闭:不销毁,改为隐藏(窗口常驻,下次通知再 show)。"""
     if _win is not None:
-        _win.hide()
+        _hide_async()
     return False                     # 阻止默认关闭(销毁)
 
 
@@ -79,7 +90,7 @@ class _JsApi:
     """
     def hide(self):
         if _win is not None:
-            _win.hide()
+            _hide_async()
 
 
 def start_ui():
