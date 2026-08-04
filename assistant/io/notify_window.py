@@ -70,6 +70,20 @@ def _do_hide():
         print(f"[notify_window] 隐藏失败: {e}")
 
 
+def _do_resize(w, h):
+    """实际调整浮窗大小(仅 worker 线程调)。
+
+    无边框窗口没有系统缩放边,尺寸由设置滑条驱动。resize 同样封送到 GUI
+    线程,故必须走 win-op 队列,不能任意线程直调。失败只打印,不影响主流程。
+    """
+    if _win is None:
+        return
+    try:
+        _win.resize(int(w), int(h))
+    except Exception as e:
+        print(f"[notify_window] 调整大小失败: {e}")
+
+
 def _op_worker():
     """窗口操作专属线程:串行消费意图,唯一被允许碰 _win 的业务线程。
 
@@ -80,22 +94,29 @@ def _op_worker():
     _ready.wait()
     if _win is not None:
         _win.events.loaded.wait(30)      # 等首页面加载完,GUI 线程进入稳定消息循环
-    handlers = {"show": _do_show, "hide": _do_hide}
     while True:
-        op = _ops.get()
-        fn = handlers.get(op)
-        if fn is not None:
-            fn()
+        op, payload = _ops.get()
+        if op == "show":
+            _do_show()
+        elif op == "hide":
+            _do_hide()
+        elif op == "resize":
+            _do_resize(*payload)
 
 
 def show():
     """从任意线程请求弹出通知浮窗(幂等)。只投意图,不直接碰窗口。"""
-    _ops.put("show")
+    _ops.put(("show", None))
 
 
 def hide():
     """从任意线程请求隐藏浮窗(幂等)。只投意图,不直接碰窗口。"""
-    _ops.put("hide")
+    _ops.put(("hide", None))
+
+
+def resize(w, h):
+    """从任意线程请求调整浮窗大小。只投意图,不直接碰窗口。"""
+    _ops.put(("resize", (int(w), int(h))))
 
 
 def _on_closing():
@@ -113,6 +134,13 @@ class _JsApi:
     def hide(self):
         hide()
 
+    def resize(self, w, h):
+        """设置滑条调大小 → 投意图到 win-op 队列(本回调跑在 GUI 线程,绝不直碰窗口)。"""
+        try:
+            resize(int(w), int(h))
+        except (TypeError, ValueError) as e:
+            print(f"[notify_window] resize 参数非法: {e}")
+
 
 def start_ui():
     """主线程入口:建常驻浮窗(先隐藏)+ 起 worker + 起 GUI 循环(阻塞)。
@@ -121,9 +149,16 @@ def start_ui():
     """
     global _win
     x, y = _position()
+    # 尺寸取自设置(无边框无拖边,宽高由设置滑条持久化),缺省回退常量
+    try:
+        from ..core import settings as _s
+        w = int(_s.get("window_width"))
+        h = int(_s.get("window_height"))
+    except Exception:
+        w, h = _W, _H
     _win = webview.create_window(
         "待办", _notify_url(),
-        width=_W, height=_H, x=x, y=y,
+        width=w, height=h, x=x, y=y,
         frameless=True, on_top=True, easy_drag=False,   # 拖拽走前端 pywebview-drag-region 类(顶部)
         resizable=False, shadow=True, hidden=True,   # 启动先隐藏,有通知才 show
         js_api=_JsApi(),

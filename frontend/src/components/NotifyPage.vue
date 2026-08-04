@@ -16,10 +16,12 @@ import {
   doneTask,
   fetchAiHistory,
   fetchAiLog,
+  fetchRules,
   fetchSnoozeOptions,
   replyAi,
   setDnd,
   snoozeTask,
+  updateSettings,
 } from '@/api/client'
 import type { AiLogEntry, SnoozeOption, WillPushTask } from '@/types'
 
@@ -39,6 +41,39 @@ const chatListEl = ref<HTMLElement | null>(null)
 const replyInputEl = ref<HTMLInputElement | null>(null)   // 回复框 ref:发送后保持焦点
 const showProcess = ref(false)                        // 「AI 上下文」展开与否
 const aiLog = ref<AiLogEntry[]>([])
+
+// ---- 浮窗尺寸设置(无边框无拖边,用滑条调宽高) ----
+const showSize = ref(false)
+const sizeW = ref(720)
+const sizeH = ref(560)
+const SIZE_RANGE = { w: [480, 1600] as const, h: [360, 1200] as const }
+
+async function toggleSize() {
+  showSize.value = !showSize.value
+  if (showSize.value) {
+    try {
+      const r = await fetchRules()
+      const find = (k: string) => r.editable.find((s) => s.key === k)?.value
+      sizeW.value = find('window_width') ?? 720
+      sizeH.value = find('window_height') ?? 560
+    } catch { /* 用当前值即可 */ }
+  }
+}
+
+/** 拖动即生效:本地 resize + 持久化到设置。防抖避免拖动时刷接口。 */
+let sizeTimer: number | undefined
+function applySize() {
+  window.clearTimeout(sizeTimer)
+  sizeTimer = window.setTimeout(async () => {
+    try {
+      await updateSettings({ window_width: sizeW.value, window_height: sizeH.value })
+      const api = (window as unknown as { pywebview?: { api?: { resize?: (w: number, h: number) => void } } }).pywebview?.api
+      api?.resize?.(sizeW.value, sizeH.value)
+    } catch (err) {
+      ElMessage.error(err instanceof Error ? err.message : '保存失败')
+    }
+  }, 300)
+}
 
 // ---- 输入历史(终端式 ↑↓ 翻) ----
 const history = ref<string[]>([])                     // 用户发过的消息,新的在后
@@ -291,7 +326,20 @@ onUnmounted(() => {
     <div class="np-head pywebview-drag-region">
       <span class="np-title">🔔 弹窗</span>
       <span v-if="tasks.length" class="np-count">{{ tasks.length }}</span>
+      <button class="np-gear" title="窗口大小" @click.stop="toggleSize">⚙</button>
       <button class="np-close" title="隐藏(Esc;有通知再弹)。Ctrl+R 重载拿新构建" @click="hideWindow">×</button>
+    </div>
+
+    <!-- 窗口大小设置:无边框窗口没有拖边,用两条滑条调宽高,拖动即生效 -->
+    <div v-if="showSize" class="np-size-pop" @click.stop>
+      <label class="np-size-row">
+        <span class="np-size-name">宽 {{ sizeW }}px</span>
+        <input v-model.number="sizeW" type="range" :min="SIZE_RANGE.w[0]" :max="SIZE_RANGE.w[1]" step="10" @input="applySize" />
+      </label>
+      <label class="np-size-row">
+        <span class="np-size-name">高 {{ sizeH }}px</span>
+        <input v-model.number="sizeH" type="range" :min="SIZE_RANGE.h[0]" :max="SIZE_RANGE.h[1]" step="10" @input="applySize" />
+      </label>
     </div>
 
     <div class="np-cols">
@@ -433,6 +481,7 @@ onUnmounted(() => {
 
 <style scoped>
 .notify-page {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -463,8 +512,24 @@ onUnmounted(() => {
   border-radius: 10px;
   padding: 1px 7px;
 }
-.np-close {
+.np-gear {
   margin-left: auto;
+  border: none;
+  background: transparent;
+  color: #909399;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-family: inherit;
+}
+.np-gear:hover {
+  background: #eceff3;
+  color: #555;
+}
+.np-close {
+  margin-left: 0;
   border: none;
   background: transparent;
   color: #909399;
@@ -478,6 +543,38 @@ onUnmounted(() => {
 .np-close:hover {
   background: #eceff3;
   color: #555;
+}
+
+/* 窗口大小设置弹层 */
+.np-size-pop {
+  position: absolute;
+  top: 44px;
+  right: 12px;
+  z-index: 40;
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  padding: 12px 14px;
+  width: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.np-size-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.np-size-name {
+  font-size: 12px;
+  color: #606266;
+  font-weight: 500;
+}
+.np-size-row input[type='range'] {
+  width: 100%;
+  accent-color: #5b9bd5;
+  cursor: pointer;
 }
 
 /* 两列布局 */
