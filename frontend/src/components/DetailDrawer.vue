@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Close } from '@element-plus/icons-vue'
 
 import { closeTask, doneTask, fetchSnoozeOptions, fetchTaskDetail, fetchTaskPushes, snoozeTask, unsnoozeTask } from '@/api/client'
 import type { PushRecord, SnoozeOption, TaskDetail } from '@/types'
@@ -27,6 +28,20 @@ const pushes = ref<PushRecord[]>([])
 const loading = ref(false)
 /** 动作按钮防重复点击 */
 const acting = ref(false)
+
+/** 手机端抽屉整屏(100%),桌面 420px。整屏后没有"点外面"可关,故需显式关闭按钮。 */
+const MOBILE = '(max-width: 767px)'
+const isMobile = ref(false)
+let mql: MediaQueryList | null = null
+function onMql(e: MediaQueryListEvent) {
+  isMobile.value = e.matches
+}
+onMounted(() => {
+  mql = window.matchMedia(MOBILE)
+  isMobile.value = mql.matches
+  mql.addEventListener('change', onMql)
+})
+onBeforeUnmount(() => mql?.removeEventListener('change', onMql))
 
 /** 与 TaskCard 一致的重要性着色 */
 const importanceClass = computed(() => {
@@ -218,7 +233,7 @@ async function doUnsnooze() {
 <template>
   <el-drawer
     :model-value="modelValue"
-    size="420px"
+    :size="isMobile ? '100%' : '420px'"
     :with-header="false"
     @update:model-value="handleUpdate"
   >
@@ -227,7 +242,17 @@ async function doUnsnooze() {
         <!-- 标题区 -->
         <div class="head">
           <h2 class="head-title">{{ detail.title }}</h2>
-          <span class="imp-badge" :class="importanceClass">{{ importanceText }}</span>
+          <div class="head-right">
+            <span class="imp-badge" :class="importanceClass">{{ importanceText }}</span>
+            <el-button
+              class="head-close"
+              :icon="Close"
+              text
+              size="small"
+              title="关闭"
+              @click="handleUpdate(false)"
+            />
+          </div>
         </div>
 
         <!-- 详情区 -->
@@ -355,6 +380,15 @@ async function doUnsnooze() {
   gap: 12px;
   padding-bottom: 14px;
   border-bottom: 1px solid #f0f1f5;
+}
+.head-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.head-close {
+  color: #909399;
 }
 .head-title {
   margin: 0;
