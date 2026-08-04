@@ -34,6 +34,7 @@ const chat = ref<ChatMsg[]>([])
 const replyDraft = ref('')
 const replyBusy = ref(false)
 const chatListEl = ref<HTMLElement | null>(null)
+const replyInputEl = ref<HTMLInputElement | null>(null)   // 回复框 ref:发送后保持焦点
 const showProcess = ref(false)                        // 「AI 看了啥」展开与否
 const aiLog = ref<AiLogEntry[]>([])
 
@@ -99,6 +100,8 @@ async function onReply() {
     ElMessage.error(err instanceof Error ? err.message : '发送失败')
   } finally {
     replyBusy.value = false
+    // 发送后光标留在对话框,不用重新点(disabled 会丢焦点,恢复后补回)
+    nextTick(() => replyInputEl.value?.focus())
   }
 }
 
@@ -169,6 +172,11 @@ function hideWindow() {
   }
 }
 
+/** Esc = 点 ×(隐藏浮窗)。 */
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') hideWindow()
+}
+
 async function snoozeAll() {
   dndBusy.value = true
   try {
@@ -188,9 +196,11 @@ async function snoozeAll() {
 onMounted(() => {
   connect()
   fetchSnoozeOptions().then((r) => (options.value = r.options)).catch(() => {})
+  window.addEventListener('keydown', onKeydown)   // Esc 隐藏
 })
 onUnmounted(() => {
   window.clearTimeout(retryTimer)
+  window.removeEventListener('keydown', onKeydown)
   ws?.close()
 })
 </script>
@@ -247,6 +257,7 @@ onUnmounted(() => {
         <!-- 回复框 -->
         <div class="np-reply">
           <input
+            ref="replyInputEl"
             v-model="replyDraft"
             class="np-reply-input"
             type="text"
