@@ -4,9 +4,9 @@
  *
  * 右列「待办」:通知层推来的任务快照(被动接收 /ws 的 notify/done/snooze),
  *   完成/推迟/留言走 REST,后端广播同步。
- * 左列「AI 教练」:第四层旁观 Agent 的对话记录 + 调用过程。
+ * 左列「AI 助手」:第四层旁观 Agent 的对话记录 + 调用过程。
  *   ai_message 事件(经 /ws)追加 AI 气泡;用户回复走 /api/ai/reply;
- *   「AI 看了啥」展开拉 /api/ai/log 看它每次判断读了什么、为何开口/沉默。
+ *   「AI 看了啥」展开拉 /api/ai/log 看它每次判断读了什么、为何说话/沉默。
  * 两列解耦:通知列不知什么是冷却/定档;AI 列不知什么是任务过滤,只渲染对话与日志。
  */
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
@@ -124,7 +124,7 @@ function fmtTime(ts?: number) {
 const LOG_KIND_LABEL: Record<string, string> = {
   observe: '👀 观察',
   silent: '🤫 沉默',
-  speak: '💬 开口',
+  speak: '💬 AI',
   user_reply: '🗣 用户回复',
   llm_error: '⚠️ 模型错误',
   error: '⚠️ 错误',
@@ -208,16 +208,16 @@ onUnmounted(() => {
 <template>
   <div class="notify-page">
     <div class="np-head pywebview-drag-region">
-      <span class="np-title">🔔 待办 · AI 教练</span>
+      <span class="np-title">🔔 弹窗</span>
       <span v-if="tasks.length" class="np-count">{{ tasks.length }}</span>
       <button class="np-close" title="隐藏(有通知再弹)" @click="hideWindow">×</button>
     </div>
 
     <div class="np-cols">
-      <!-- 左列:AI 教练对话 -->
+      <!-- 左列:AI 助手对话 -->
       <section class="np-ai">
         <div class="np-ai-head">
-          <span class="np-col-title">🤖 AI 教练</span>
+          <span class="np-col-title">🤖 AI 助手</span>
           <button class="np-link" @click="toggleProcess">
             {{ showProcess ? '收起过程' : 'AI 看了啥' }}
           </button>
@@ -241,7 +241,7 @@ onUnmounted(() => {
         <!-- 对话流 -->
         <div ref="chatListEl" class="np-chat">
           <div v-if="!chat.length" class="np-chat-empty">
-            AI 在后台看着你的任务动静。<br />觉得你不对劲时会在这里开口。
+            AI 在后台看着你的任务动静。<br />觉得你不对劲时会在这里说话。
           </div>
           <div
             v-for="(m, i) in chat"
