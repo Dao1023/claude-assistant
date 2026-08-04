@@ -364,7 +364,17 @@ onUnmounted(() => {
 
       <!-- 右列:待办通知 -->
       <section class="np-tasks">
-        <div class="np-col-title np-tasks-title">📋 待办</div>
+        <div class="np-tasks-head">
+          <span class="np-col-title">📋 待办</span>
+          <!-- 一键全推迟:整列操作入口,放顶部一眼可见,不用滚到底 -->
+          <button
+            v-if="tasks.length"
+            class="np-snooze-all"
+            :disabled="dndBusy"
+            title="全部任务推迟 1 小时,可关窗"
+            @click="snoozeAll"
+          >🌙 全部稍后 1 小时</button>
+        </div>
         <div v-if="!tasks.length" class="np-empty">
           这会儿没有该催的了 🎉
         </div>
@@ -408,13 +418,6 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
-
-        <button
-          v-if="tasks.length"
-          class="np-snooze-all"
-          :disabled="dndBusy"
-          @click="snoozeAll"
-        >🌙 全部稍后 1 小时</button>
       </section>
     </div>
   </div>
@@ -712,7 +715,11 @@ onUnmounted(() => {
 }
 
 /* 待办列 */
-.np-tasks-title {
+.np-tasks-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 8px;
 }
 .np-empty {
@@ -860,15 +867,15 @@ onUnmounted(() => {
   font-size: 12px;
   color: #909399;
 }
+/* 一键全推迟:顶部小按钮(整列操作入口),不再压底部 */
 .np-snooze-all {
-  margin-top: 12px;
-  width: 100%;
+  flex-shrink: 0;
   border: 1px solid #c9d6ec;
   background: #eef3fb;
   color: #4a6a9c;
-  border-radius: 8px;
-  padding: 9px;
-  font-size: 13px;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
   cursor: pointer;
   font-family: inherit;
 }
