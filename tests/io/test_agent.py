@@ -166,3 +166,50 @@ def test_local_subscriber_error_does_not_break_publish():
         events.unsubscribe_local(bad)
         events.unsubscribe_local(good.append)
     assert len(good) == 1                      # 坏订阅者不影响好的
+
+
+# ---------- 任务清单注入(B/C) ----------
+
+def _fake_lists(ends=None, starts=None):
+    """伪造 engine.today_lists 返回值。"""
+    return (ends or [], starts or [])
+
+
+def test_task_snapshot_formats_lists(monkeypatch, agt):
+    ends = [{"id": "e1", "title": "交周报", "deadline": "2026-08-05 18:00"}]
+    starts = [{"id": "s1", "title": "学英语"}]
+    monkeypatch.setattr(agent_mod.engine, "today_lists",
+                        lambda conn=None: _fake_lists(ends, starts))
+    snap = agt._task_snapshot()
+    assert "交周报" in snap and "2026-08-05 18:00" in snap
+    assert "学英语" in snap
+
+
+def test_task_snapshot_empty_when_no_tasks(monkeypatch, agt):
+    monkeypatch.setattr(agent_mod.engine, "today_lists",
+                        lambda conn=None: _fake_lists())
+    assert agt._task_snapshot() == "当前没有任何活跃任务。"
+
+
+def test_task_snapshot_db_error_returns_empty(monkeypatch, agt):
+    def boom(conn=None):
+        raise RuntimeError("db down")
+    monkeypatch.setattr(agent_mod.engine, "today_lists", boom)
+    assert agt._task_snapshot() == ""          # 优雅降级,不炸
+
+
+def test_build_prompt_injects_snapshot(monkeypatch, agt):
+    starts = [{"id": "s1", "title": "背单词"}]
+    monkeypatch.setattr(agent_mod.engine, "today_lists",
+                        lambda conn=None: _fake_lists(starts=starts))
+    prompt = agt._build_prompt(_snooze())
+    assert "当前的任务清单" in prompt and "背单词" in prompt
+
+
+def test_reply_injects_snapshot(monkeypatch, agt, published):
+    starts = [{"id": "s1", "title": "背单词"}]
+    monkeypatch.setattr(agent_mod.engine, "today_lists",
+                        lambda conn=None: _fake_lists(starts=starts))
+    agt.reply("给我点建议")
+    # Mock 的 calls 记录了收到的 prompt,应含任务清单
+    assert any("背单词" in c for c in agt._backend.calls)

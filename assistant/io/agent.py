@@ -22,6 +22,7 @@ import queue
 import threading
 
 from ..config import DATA
+from ..core import engine
 from ..core.timeutil import now_ts, to_str
 from . import events
 
@@ -171,9 +172,35 @@ class Agent:
         if len(self._dialog) > 20:
             self._dialog = self._dialog[-20:]
 
+    @staticmethod
+    def _task_snapshot() -> str:
+        """拉一份当前任务清单的人话快照,注入 prompt 让 AI「看到」任务。
+
+        只读 engine.today_lists,不改前三层。失败(DB 异常等)返回空串,
+        调用方降级为不带清单——快照是增强,不是硬依赖。
+        """
+        try:
+            ends, starts = engine.today_lists()
+        except Exception:
+            return ""
+        lines = []
+        if ends:
+            lines.append("临期/截止任务(越近越急):")
+            for t in ends:
+                ddl = t.get("deadline") or "无明确截止"
+                lines.append(f"- {t['title']}(截止:{ddl})")
+        if starts:
+            lines.append("长期任务(越久没做越重要):")
+            for t in starts:
+                lines.append(f"- {t['title']}")
+        if not lines:
+            return "当前没有任何活跃任务。"
+        return "\n".join(lines)
+
     def _build_prompt(self, trigger: dict) -> str:
-        """把近期事件流压成人话给模型看。最新事件放最后(贴合前缀缓存,前面稳定)。"""
-        lines = ["以下是用户最近的任务行为事件流(按时间):"]
+        """拼判断 prompt。顺序贴前缀缓存:任务清单(较稳)在前,事件流(变动)在后。"""
+        lines = ["以下是用户当前的任务清单:", self._task_snapshot(), ""]
+        lines.append("以下是用户最近的任务行为事件流(按时间):")
         for ev in self._memory[-20:]:
             lines.append("- " + self._fmt_event(ev))
         lines.append("")
@@ -225,8 +252,11 @@ class Agent:
         if self._backend is None:
             return
         prompt = (
-            f"用户对你说:「{text}」。"
-            "他正在和你对话,请直接回应这句话(简短、像朋友,不要长篇说教)。"
+            "以下是用户当前的任务清单(供你参考回答):\n"
+            + self._task_snapshot()
+            + f"\n\n用户对你说:「{text}」。"
+            "他正在和你对话,请结合上面的任务清单直接回应(简短、像朋友,不要长篇说教)。"
+            "若他问任务/求建议,就根据清单给具体、实在的回答。"
             "这是对话不是旁观判断,不要用 SILENT。"
         )
         self._log("user_reply", {"text": text})
