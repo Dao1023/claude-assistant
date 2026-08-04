@@ -300,23 +300,8 @@ onUnmounted(() => {
         <div class="np-ai-head">
           <span class="np-col-title">🤖 AI 助手</span>
           <button class="np-link" @click="toggleProcess">
-            {{ showProcess ? '收起' : 'AI 上下文' }}
+            AI 上下文
           </button>
-        </div>
-
-        <!-- 调用过程(可展开) -->
-        <div v-if="showProcess" class="np-process">
-          <div v-if="!aiLog.length" class="np-process-empty">还没有上下文记录</div>
-          <div v-for="(e, i) in aiLog" :key="i" class="np-process-item">
-            <span class="np-process-kind">{{ LOG_KIND_LABEL[e.kind] || e.kind }}</span>
-            <span class="np-process-time">{{ fmtTime(e.ts) }}</span>
-            <div v-if="e.text" class="np-process-text">{{ e.text }}</div>
-            <div v-else-if="e.reason" class="np-process-text dim">{{ e.reason }}</div>
-            <details v-if="e.prompt" class="np-process-prompt">
-              <summary>看到的上下文</summary>
-              <pre>{{ e.prompt }}</pre>
-            </details>
-          </div>
         </div>
 
         <!-- 对话流 -->
@@ -420,6 +405,29 @@ onUnmounted(() => {
         </div>
       </section>
     </div>
+
+    <!-- AI 上下文:模态弹框,浮在上方不挤压对话区,能显示更大 -->
+    <div v-if="showProcess" class="np-modal-mask" @click.self="toggleProcess">
+      <div class="np-modal">
+        <div class="np-modal-head">
+          <span class="np-modal-title">AI 上下文</span>
+          <button class="np-close" title="关闭" @click="toggleProcess">×</button>
+        </div>
+        <div class="np-modal-body">
+          <div v-if="!aiLog.length" class="np-process-empty">还没有上下文记录</div>
+          <div v-for="(e, i) in aiLog" :key="i" class="np-process-item">
+            <span class="np-process-kind">{{ LOG_KIND_LABEL[e.kind] || e.kind }}</span>
+            <span class="np-process-time">{{ fmtTime(e.ts) }}</span>
+            <div v-if="e.text" class="np-process-text">{{ e.text }}</div>
+            <div v-else-if="e.reason" class="np-process-text dim">{{ e.reason }}</div>
+            <details v-if="e.prompt" class="np-process-prompt">
+              <summary>看到的上下文</summary>
+              <pre>{{ e.prompt }}</pre>
+            </details>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -517,25 +525,56 @@ onUnmounted(() => {
   text-decoration: underline;
 }
 
-/* AI 调用过程 */
-.np-process {
-  max-height: 140px;
+/* AI 上下文:模态弹框(浮在对话区上方,不再挤压布局) */
+.np-modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 41, 59, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+.np-modal {
+  width: min(560px, 92%);
+  height: min(480px, 86%);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.np-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #ebeef5;
+  flex-shrink: 0;
+}
+.np-modal-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+.np-modal-body {
+  flex: 1;
   overflow-y: auto;
-  border: 1px solid #ebeef5;
-  border-radius: 6px;
-  padding: 6px;
-  margin-bottom: 8px;
-  background: #fafbfc;
+  padding: 10px 14px;
+  min-height: 0;
+  user-select: text;
 }
 .np-process-empty {
   color: #c0c4cc;
   font-size: 11px;
   text-align: center;
-  padding: 8px 0;
+  padding: 20px 0;
 }
 .np-process-item {
   font-size: 11px;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
   color: #606266;
 }
 .np-process-kind {
@@ -563,7 +602,7 @@ onUnmounted(() => {
   word-break: break-all;
   font-size: 10px;
   color: #909399;
-  max-height: 80px;
+  max-height: 120px;
   overflow-y: auto;
   margin: 4px 0 0;
   /* 显式开选择:pre 默认不继承,这里补死,确保 prompt 原文可复制 */
