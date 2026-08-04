@@ -219,13 +219,13 @@ onUnmounted(() => {
         <div class="np-ai-head">
           <span class="np-col-title">🤖 AI 助手</span>
           <button class="np-link" @click="toggleProcess">
-            {{ showProcess ? '收起过程' : 'AI 看了啥' }}
+            {{ showProcess ? '收起' : 'AI 上下文' }}
           </button>
         </div>
 
         <!-- 调用过程(可展开) -->
         <div v-if="showProcess" class="np-process">
-          <div v-if="!aiLog.length" class="np-process-empty">还没有观察记录</div>
+          <div v-if="!aiLog.length" class="np-process-empty">还没有上下文记录</div>
           <div v-for="(e, i) in aiLog" :key="i" class="np-process-item">
             <span class="np-process-kind">{{ LOG_KIND_LABEL[e.kind] || e.kind }}</span>
             <span class="np-process-time">{{ fmtTime(e.ts) }}</span>
