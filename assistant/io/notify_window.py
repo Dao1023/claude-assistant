@@ -45,12 +45,17 @@ def _position():
 
 
 def _do_show():
-    """实际显示浮窗并置顶(仅 worker 线程调;窗口已建,只切换可见性)。"""
+    """实际显示浮窗(仅 worker 线程调;窗口已建,只切换可见性)。
+
+    只调 show(),绝不再设 on_top:窗口创建时已 on_top=True,重设是多余的;
+    且 on_top 的 setter 无 shown 守卫、直接封送到 GUI 线程,启动期 GUI 忙于
+    建窗/渲染时,这次封送永远等不到 → win-op 死锁(已实锤多次)。show() 自带
+    shown 守卫,是唯一安全的可见性操作。
+    """
     if _win is None:
         return
     try:
         _win.show()
-        _win.on_top = True
     except Exception as e:
         print(f"[notify_window] 显示失败: {e}")
 
@@ -68,10 +73,13 @@ def _do_hide():
 def _op_worker():
     """窗口操作专属线程:串行消费意图,唯一被允许碰 _win 的业务线程。
 
-    等 GUI 起来再开工;每个意图都是一次封送到 GUI 线程的同步调用,
-    串行执行互不交错;某个操作真卡了,也只是本线程卡,GUI 主线程照常响应。
+    开工前先等窗口 loaded(页面真加载完、GUI 线程空闲),否则启动期抢着
+    封送会撞上 GUI 忙碌期 → 死锁。之后每个意图串行执行;某个操作真卡了,
+    也只是本线程卡,GUI 主线程照常响应。
     """
     _ready.wait()
+    if _win is not None:
+        _win.events.loaded.wait(30)      # 等首页面加载完,GUI 线程进入稳定消息循环
     handlers = {"show": _do_show, "hide": _do_hide}
     while True:
         op = _ops.get()
