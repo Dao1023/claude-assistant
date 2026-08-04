@@ -109,38 +109,3 @@ def set_dnd_until(until):
             db.set_setting(conn, "dnd_until", int(until))
     finally:
         conn.close()
-
-
-# ---- 文本型配置(LLM 后端等字符串)----
-# 与上面的数值 SETTINGS 分开:字符串不能 _coerce 成 int/float,也无 min/max 校验。
-# 走同一个 settings 表(键值),但独立的 get/set 通道,不在规则页数值区渲染。
-# LLM 配置虽是秘密(key),但 settings 表与 data/key.md 同级(都在 .gitignore 的 data/),
-# 安全性等价;且能被规则页编辑,比手改文件顺手。
-
-TEXT_KEYS = ("llm_base_url", "llm_api_key", "llm_model")
-
-
-def get_text(key, default=""):
-    """读文本配置(如 llm_base_url);未设置 → default。未知 key KeyError。"""
-    if key not in TEXT_KEYS:
-        raise KeyError(f"未知文本设置项: {key}")
-    try:
-        conn = db.connect()
-        try:
-            raw = db.get_setting(conn, key)
-        finally:
-            conn.close()
-    except Exception:
-        return default
-    return raw if raw not in (None, "") else default
-
-
-def set_text(key, value):
-    """写文本配置。传空串 = 清除(回退默认)。未知 key KeyError。"""
-    if key not in TEXT_KEYS:
-        raise KeyError(f"未知文本设置项: {key}")
-    conn = db.connect()
-    try:
-        db.set_setting(conn, key, value if value else "")
-    finally:
-        conn.close()

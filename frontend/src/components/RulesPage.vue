@@ -1,17 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import {
-  clearDnd,
-  fetchFunnel,
-  fetchLlmConfig,
-  fetchRules,
-  saveLlmConfig,
-  setDnd,
-  testLlmConfig,
-  updateSettings,
-} from '@/api/client'
-import type { EditableSetting, FunnelResponse, LlmConfig } from '@/types'
+import { clearDnd, fetchFunnel, fetchRules, setDnd, updateSettings } from '@/api/client'
+import type { EditableSetting, FunnelResponse } from '@/types'
 import NightBand from './NightBand.vue'
 
 const funnel = ref<FunnelResponse | null>(null)
@@ -23,57 +14,17 @@ const draft = ref<Record<string, number>>({})
 const tempHours = ref(0)               // 临时免打扰拖的小时数(0~5,0=不开)
 const dndOperating = ref(false)
 
-// ---- LLM 配置 ----
-const llm = ref<LlmConfig | null>(null)
-const llmDraft = ref({ base_url: '', api_key: '', model: '' })
-const llmSaving = ref(false)
-const llmTesting = ref(false)
-
 async function load() {
   loading.value = true
   try {
-    const [f, r, l] = await Promise.all([fetchFunnel(), fetchRules(), fetchLlmConfig()])
+    const [f, r] = await Promise.all([fetchFunnel(), fetchRules()])
     funnel.value = f
     editable.value = r.editable
     for (const s of r.editable) draft.value[s.key] = s.value
-    llm.value = l
-    // 生效值作 placeholder(空框也能看到「现在用的是什么」),输入框留空待改
-    llmDraft.value = { base_url: '', api_key: '', model: '' }
   } catch (err) {
     ElMessage.error(err instanceof Error ? err.message : '加载规则失败')
   } finally {
     loading.value = false
-  }
-}
-
-/** 存 LLM 配置。三项留空=不动现有;填了=覆盖该项。 */
-async function saveLlm() {
-  llmSaving.value = true
-  try {
-    const payload: Record<string, string> = {}
-    if (llmDraft.value.base_url.trim()) payload.base_url = llmDraft.value.base_url.trim()
-    if (llmDraft.value.api_key.trim()) payload.api_key = llmDraft.value.api_key.trim()
-    if (llmDraft.value.model.trim()) payload.model = llmDraft.value.model.trim()
-    llm.value = await saveLlmConfig(payload)
-    llmDraft.value = { base_url: '', api_key: '', model: '' }   // 清空,回显靠 placeholder
-    ElMessage.success('LLM 配置已保存,即时生效')
-  } catch (err) {
-    ElMessage.error(err instanceof Error ? err.message : '保存失败')
-  } finally {
-    llmSaving.value = false
-  }
-}
-
-async function testLlm() {
-  llmTesting.value = true
-  try {
-    const r = await testLlmConfig()
-    if (r.ok) ElMessage.success(`连通正常:${r.sample}`)
-    else ElMessage.error(`连不通:${r.error}`)
-  } catch (err) {
-    ElMessage.error(err instanceof Error ? err.message : '测试失败')
-  } finally {
-    llmTesting.value = false
   }
 }
 
@@ -195,44 +146,6 @@ onMounted(load)
           <span class="dnd-slider-text">{{ tempHours ? `接下来 ${tempHours} 小时` : '拖动开启' }}</span>
         </div>
       </div>
-    </div>
-
-    <!-- LLM 配置:AI 教练的大脑。api_key 只写不回显,留空表示不动现有 key。 -->
-    <div v-if="llm" class="llm-card">
-      <div class="llm-head">
-        <span class="dnd-icon">🤖</span>
-        <span class="dnd-title">AI 教练 · 模型配置</span>
-        <span v-if="llm.configured" class="dnd-state clear">已配置</span>
-        <span v-else class="dnd-state frozen">未配置</span>
-        <span v-if="llm.configured" class="llm-source">
-          {{ llm.from_settings ? '生效自本页' : '生效自 data/key.md' }}
-        </span>
-      </div>
-      <div class="llm-rows">
-        <div class="llm-row">
-          <span class="llm-label">端点</span>
-          <el-input v-model="llmDraft.base_url" :placeholder="llm.base_url || 'https://api.deepseek.com/anthropic'" class="llm-input" />
-        </div>
-        <div class="llm-row">
-          <span class="llm-label">Key</span>
-          <el-input
-            v-model="llmDraft.api_key"
-            type="password"
-            show-password
-            :placeholder="llm.api_key ? `当前 ${llm.api_key}(留空不变)` : 'sk-...'"
-            class="llm-input"
-          />
-        </div>
-        <div class="llm-row">
-          <span class="llm-label">模型</span>
-          <el-input v-model="llmDraft.model" :placeholder="llm.model || 'deepseek-v4-pro'" class="llm-input" />
-        </div>
-      </div>
-      <div class="llm-actions">
-        <el-button type="primary" size="small" :loading="llmSaving" @click="saveLlm">保存</el-button>
-        <el-button size="small" :loading="llmTesting" :disabled="!llm.configured" @click="testLlm">测试连通</el-button>
-      </div>
-      <p class="llm-hint">存在本地数据库(不进 git)。留空=不动现有值;改模型省钱可用 deepseek-v4-flash。</p>
     </div>
 
     <!-- 漏斗各层 -->
@@ -391,54 +304,6 @@ onMounted(load)
 .dnd-active-dot {
   color: #5b9bd5;
   font-size: 10px;
-}
-.llm-card {
-  background: #fff;
-  border: 1px solid #eceef3;
-  border-radius: 8px;
-  padding: 12px 14px;
-  margin-bottom: 14px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-}
-.llm-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.llm-source {
-  margin-left: auto;
-  font-size: 11px;
-  color: #a0a8b5;
-}
-.llm-rows {
-  margin: 14px 0 0 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.llm-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.llm-label {
-  font-size: 13px;
-  color: #5a6b7b;
-  width: 44px;
-  flex-shrink: 0;
-}
-.llm-input {
-  max-width: 420px;
-}
-.llm-actions {
-  margin: 14px 0 0 24px;
-  display: flex;
-  gap: 8px;
-}
-.llm-hint {
-  margin: 10px 0 0 24px;
-  font-size: 11px;
-  color: #a0a8b5;
 }
 .layer-wrap {
   display: flex;

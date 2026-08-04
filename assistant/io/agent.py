@@ -247,7 +247,7 @@ def get_agent() -> Agent:
 
 
 def start_agent(backend=None) -> Agent:
-    """装配并启动全局 Agent(幂等)。backend 缺省按配置自动选。"""
+    """装配并启动全局 Agent(幂等)。backend 缺省按 key 配置自动选。"""
     global _agent
     if _agent is None:
         if backend is None:
@@ -257,21 +257,13 @@ def start_agent(backend=None) -> Agent:
     return _agent
 
 
-def reconfigure() -> Agent:
-    """规则页改了 LLM 配置后调用:保留记忆/对话,重建后端并热切换。"""
-    global _agent
-    if _agent is None:
-        return start_agent()
-    _agent._backend = _auto_backend()
-    return _agent
-
-
 def _auto_backend():
-    """有配置用 DeepSeek,没有则 None(Agent 退化只旁观不开口)。配置走 resolve_config。"""
+    """有 key 用 DeepSeek,没有则 None(Agent 退化只旁观不开口)。"""
     from . import llm
-    if llm.resolve_config():
+    cfg = llm.load_key_config()
+    if cfg:
         try:
-            return llm.DeepSeekBackend()
+            return llm.DeepSeekBackend(cfg)
         except Exception:
             return None
     return None

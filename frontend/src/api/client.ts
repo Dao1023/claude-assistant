@@ -3,9 +3,6 @@ import type {
   AiLogResponse,
   EditableSetting,
   FunnelResponse,
-  LlmConfig,
-  LlmConfigPayload,
-  LlmTestResult,
   PushesResponse,
   RulesResponse,
   SnoozeOptionsResponse,
@@ -196,35 +193,4 @@ export async function replyAi(text: string): Promise<void> {
   if (!res.ok) {
     throw new Error(`发送失败:${res.status} ${res.statusText}`)
   }
-}
-
-/** 读 LLM 配置(api_key 已脱敏)。 */
-export async function fetchLlmConfig(): Promise<LlmConfig> {
-  const res = await fetch('/api/llm', { headers: { Accept: 'application/json' } })
-  if (!res.ok) {
-    throw new Error(`请求失败:${res.status} ${res.statusText}`)
-  }
-  return (await res.json()) as LlmConfig
-}
-
-/** 存 LLM 配置。只传要改的字段;空串=清除该项。返回最新(脱敏)配置。 */
-export async function saveLlmConfig(payload: Partial<LlmConfigPayload>): Promise<LlmConfig> {
-  const res = await fetch('/api/llm', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-  if (!res.ok) {
-    throw new Error(`保存失败:${res.status} ${res.statusText}`)
-  }
-  return (await res.json()) as LlmConfig
-}
-
-/** 用当前配置试调模型,验证连通。 */
-export async function testLlmConfig(): Promise<LlmTestResult> {
-  const res = await fetch('/api/llm/test', { method: 'POST' })
-  if (!res.ok) {
-    throw new Error(`测试失败:${res.status} ${res.statusText}`)
-  }
-  return (await res.json()) as LlmTestResult
 }
