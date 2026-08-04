@@ -149,11 +149,11 @@ function handleUpdate(value: boolean) {
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="预期间隔">
+        <el-form-item label="预期">
           <div class="cycle-row">
             <span class="cycle-text">约</span>
             <el-input-number v-model="form.expected_days" :min="1" :max="365" size="small" />
-            <span class="cycle-text">天做一次</span>
+            <span class="cycle-text">天完成</span>
           </div>
         </el-form-item>
         <el-form-item label="完成后">

@@ -49,7 +49,7 @@ const cycleText = computed(() => {
   const d = detail.value
   if (!d) return null
   if (d.drive === 'start') {
-    return d.expected_days ? `约每 ${d.expected_days} 天` : null
+    return d.expected_days ? `约 ${d.expected_days} 天完成` : null
   }
   return d.recurrence_days ? `每 ${d.recurrence_days} 天重复` : null
 })
