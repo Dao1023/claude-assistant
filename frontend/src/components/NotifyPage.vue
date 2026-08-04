@@ -197,7 +197,7 @@ onUnmounted(() => {
 
 <template>
   <div class="notify-page">
-    <div class="np-head">
+    <div class="np-head pywebview-drag-region">
       <span class="np-title">🔔 待办 · AI 教练</span>
       <span v-if="tasks.length" class="np-count">{{ tasks.length }}</span>
       <button class="np-close" title="隐藏(有通知再弹)" @click="hideWindow">×</button>
@@ -331,15 +331,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
-  /* 顶部标题栏 = 拖拽把手(整窗 easy_drag 已关,只留这里可拖) */
-  -webkit-app-region: drag;
-  user-select: none;
+  /* 顶部标题栏 = 拖拽把手:pywebview 认 pywebview-drag-region 类(非 Electron 的 app-region)。
+     整窗 easy_drag 已关,只这里可拖,正文正常选文本。 */
   cursor: move;
-}
-/* 头部里的可点元素(关闭按钮)不能跟着拖,恢复交互 */
-.np-head button {
-  -webkit-app-region: no-drag;
-  cursor: pointer;
+  user-select: none;
 }
 .np-title {
   font-size: 15px;
@@ -498,8 +493,7 @@ onUnmounted(() => {
   font-size: 13px;
   line-height: 1.5;
   word-break: break-word;
-  /* 正文可选中复制(配合顶部拖拽区:头拖、正文选) */
-  -webkit-app-region: no-drag;
+  /* 正文可选中复制(easy_drag 已关,天然可选;显式声明保险) */
   user-select: text;
   cursor: text;
 }

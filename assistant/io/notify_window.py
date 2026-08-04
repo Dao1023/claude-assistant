@@ -92,7 +92,7 @@ def start_ui():
     _win = webview.create_window(
         "待办", _notify_url(),
         width=_W, height=_H, x=x, y=y,
-        frameless=True, on_top=True, easy_drag=False,   # 拖拽交给前端 CSS 区域(顶部可拖/正文可选)
+        frameless=True, on_top=True, easy_drag=False,   # 拖拽走前端 pywebview-drag-region 类(顶部)
         resizable=False, shadow=True, hidden=True,   # 启动先隐藏,有通知才 show
         js_api=_JsApi(),
     )
