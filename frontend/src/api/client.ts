@@ -80,9 +80,10 @@ export async function snoozeTask(id: string, until?: string | number, note?: str
   }
 }
 
-/** 拉取推迟预设选项(1h/3h/明天/下周)。 */
-export async function fetchSnoozeOptions(): Promise<SnoozeOptionsResponse> {
-  const res = await fetch('/api/snooze-options', { headers: { Accept: 'application/json' } })
+/** 拉取某任务的推迟选项(start=预期×系数,end=剩余×系数);taskId 缺省给兜底。 */
+export async function fetchSnoozeOptions(taskId?: string): Promise<SnoozeOptionsResponse> {
+  const url = taskId ? `/api/snooze-options?task_id=${encodeURIComponent(taskId)}` : '/api/snooze-options'
+  const res = await fetch(url, { headers: { Accept: 'application/json' } })
   if (!res.ok) {
     throw new Error(`请求失败:${res.status} ${res.statusText}`)
   }

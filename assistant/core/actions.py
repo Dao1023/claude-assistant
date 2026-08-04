@@ -4,7 +4,7 @@
 调用方:HTTP 接口(io/server.py)、催办小卡(io/pusher.py)。
 时间字段内部一律 Unix 秒级 int(见 core/timeutil.py)。
 """
-from . import db
+from . import db, funnel
 from .timeutil import now_ts
 
 
@@ -146,29 +146,43 @@ def do_unsnooze(conn, p):
     return {"task_id": tid, "unsnoozed": True}
 
 
-def snooze_options():
-    """推迟预设选项:{key: (显示名, 到点的 Unix 秒)}。自定义由调用方传绝对 ts。
+# 推迟系数档:用户按任务自身时间尺度选推迟多久(剩 1 小时的任务最多推迟 1.0)
+SNOOZE_RATIOS = [0.1, 0.2, 0.5, 1.0]
 
-    - 1h / 3h:从 now 往后推
-    - tomorrow:次日 08:00
-    - next_week:下周一 08:00
+
+def snooze_options(task=None):
+    """推迟选项,按任务时间尺度动态算:{key: (显示名, 到点的 Unix 秒)}。
+
+    - start(越久越重要):按「预期间隔 expected_duration」× 系数;
+    - end(越近截止越急):按「距截止的剩余时间」× 系数(上限即剩余时间,
+      推迟超过就直接过期了,所以最多 1.0)。
+    无任务或缺时间字段 → 兜底给 1h/3h(兼容旧调用)。
     """
-    from datetime import datetime, timedelta
     t = now()
-    dt = datetime.fromtimestamp(t)
+    if task is None:
+        return {"1h": ("1 小时后", t + 3600), "3h": ("3 小时后", t + 3 * 3600)}
 
-    def at(d, hour=8):
-        return int(d.replace(hour=hour, minute=0, second=0, microsecond=0).timestamp())
+    base = _snooze_base(task, t)
+    if not base or base <= 0:
+        return {"1h": ("1 小时后", t + 3600), "3h": ("3 小时后", t + 3 * 3600)}
 
-    tomorrow = dt + timedelta(days=1)
-    # 下周一:本周一 + 7 天
-    monday = dt - timedelta(days=dt.weekday()) + timedelta(days=7)
-    return {
-        "1h": ("1 小时后", t + 3600),
-        "3h": ("3 小时后", t + 3 * 3600),
-        "tomorrow": ("明天", at(tomorrow)),
-        "next_week": ("下周", at(monday)),
-    }
+    out = {}
+    for r in SNOOZE_RATIOS:
+        secs = max(int(base * r), 60)               # 至少 1 分钟
+        label = f"{funnel.fmt_duration(secs)}(×{r})"
+        out[f"x{r}"] = (label, t + secs)
+    return out
+
+
+def _snooze_base(task, now_ts):
+    """推迟的时间基准(秒):start 用预期间隔,end 用距截止的剩余时间。"""
+    if task.get("drive") == "start":
+        return task.get("expected_duration")
+    # end:剩余 = deadline - now
+    ddl = task.get("deadline")
+    if ddl is None:
+        return None
+    return int(ddl) - int(now_ts)
 
 
 def do_query(conn, p):

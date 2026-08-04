@@ -188,3 +188,31 @@ def test_push_stats(conn):
     db.log_push(conn, tid, NOW - 3600, "escalating")
     n, last = db.push_stats(conn, tid)
     assert n == 2 and last == NOW - 3600
+
+
+# ---------- 推迟选项按任务动态化(start=预期×系数,end=剩余×系数) ----------
+
+def test_snooze_options_start_scales_by_expected():
+    # start 预期 30 天 → ×0.1=3天 / ×0.5=15天 / ×1.0=30天
+    t = {"drive": "start", "expected_duration": 30 * 86400}
+    opts = actions.snooze_options(t)
+    labels = [lbl for _, (lbl, _) in opts.items()]
+    assert any("3 天" in l and "×0.1" in l for l in labels)
+    assert any("15 天" in l and "×0.5" in l for l in labels)
+    assert any("30 天" in l and "×1.0" in l for l in labels)
+
+
+def test_snooze_options_end_scales_by_remaining():
+    # end 剩 1 小时 → 最多 ×1.0=1小时(推迟超剩余就过期了)
+    from assistant.core.timeutil import now_ts
+    t = {"drive": "end", "deadline": now_ts() + 3600}
+    opts = actions.snooze_options(t)
+    untils = [u for _, (_, u) in opts.items()]
+    now = now_ts()
+    # 最大的推迟也不超过剩余 1 小时(容差 5 秒)
+    assert max(untils) - now <= 3600 + 5
+
+
+def test_snooze_options_fallback_without_task():
+    opts = actions.snooze_options()
+    assert "1h" in opts and "3h" in opts

@@ -24,7 +24,7 @@ import {
 import type { AiLogEntry, SnoozeOption, WillPushTask } from '@/types'
 
 const tasks = ref<WillPushTask[]>([])
-const options = ref<SnoozeOption[]>([])
+const snoozeOptions = ref<Record<string, SnoozeOption[]>>({})   // 每任务的推迟选项(点「稍后」时按任务现取)
 const notes = ref<Record<string, string>>({})        // 每卡的留言草稿
 const expandedSnooze = ref<Record<string, boolean>>({})
 const busy = ref<Record<string, boolean>>({})
@@ -210,8 +210,16 @@ async function onSnooze(t: WillPushTask, until?: string | number) {
   }
 }
 
-function toggleSnooze(id: string) {
+async function toggleSnooze(id: string) {
   expandedSnooze.value[id] = !expandedSnooze.value[id]
+  // 展开时按这个任务现取推迟选项(start=预期×系数,end=剩余×系数)
+  if (expandedSnooze.value[id]) {
+    try {
+      snoozeOptions.value[id] = (await fetchSnoozeOptions(id)).options
+    } catch {
+      snoozeOptions.value[id] = []
+    }
+  }
 }
 
 function hideWindow() {
@@ -251,7 +259,6 @@ async function snoozeAll() {
 
 onMounted(() => {
   connect()
-  fetchSnoozeOptions().then((r) => (options.value = r.options)).catch(() => {})
   window.addEventListener('keydown', onKeydown)   // Esc 隐藏
   // 回填历史对话:浮窗重载后 chat 从后端日志恢复,之后 /ws 增量追加
   fetchAiHistory(50)
@@ -379,9 +386,8 @@ onUnmounted(() => {
             </div>
 
             <div v-if="expandedSnooze[t.id]" class="np-snooze-opts">
-              <button class="np-btn small" :disabled="busy[t.id]" @click="onSnooze(t)">1 小时</button>
               <button
-                v-for="o in options"
+                v-for="o in snoozeOptions[t.id] || []"
                 :key="o.key"
                 class="np-btn small"
                 :disabled="busy[t.id]"

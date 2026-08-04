@@ -199,10 +199,27 @@ def create_app() -> FastAPI:
             conn.close()
 
     @app.get("/api/snooze-options")
-    def api_snooze_options():
-        """推迟预设选项,供前端「稍后」选择。"""
+    def api_snooze_options(task_id: Optional[str] = None):
+        """推迟选项,按任务时间尺度动态算(start=预期×系数,end=剩余×系数)。
+
+        task_id 缺省 → 兜底 1h/3h(兼容)。任务从今日清单取(含 drive/deadline/
+        expected_duration),取不到则兜底。
+        """
+        task = None
+        if task_id:
+            conn = queries.db.connect()
+            try:
+                from ..core import engine
+                ends, starts = engine.today_lists(conn)
+                for t in ends + starts:
+                    if t["id"] == task_id:
+                        task = t
+                        break
+            finally:
+                conn.close()
+        opts = actions.snooze_options(task)
         return {"options": [{"key": k, "label": lbl, "until": ts}
-                            for k, (lbl, ts) in actions.snooze_options().items()]}
+                            for k, (lbl, ts) in opts.items()]}
 
     @app.delete("/api/tasks/{tid}/snooze")
     def api_unsnooze(tid: str):
