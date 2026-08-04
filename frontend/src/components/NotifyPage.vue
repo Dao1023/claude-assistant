@@ -331,6 +331,15 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
+  /* 顶部标题栏 = 拖拽把手(整窗 easy_drag 已关,只留这里可拖) */
+  -webkit-app-region: drag;
+  user-select: none;
+  cursor: move;
+}
+/* 头部里的可点元素(关闭按钮)不能跟着拖,恢复交互 */
+.np-head button {
+  -webkit-app-region: no-drag;
+  cursor: pointer;
 }
 .np-title {
   font-size: 15px;
@@ -489,6 +498,10 @@ onUnmounted(() => {
   font-size: 13px;
   line-height: 1.5;
   word-break: break-word;
+  /* 正文可选中复制(配合顶部拖拽区:头拖、正文选) */
+  -webkit-app-region: no-drag;
+  user-select: text;
+  cursor: text;
 }
 .np-msg.ai .np-bubble {
   background: #f0f4f9;

@@ -53,6 +53,31 @@ def load_key_config() -> Optional[dict]:
         return None
 
 
+def resolve_config() -> Optional[dict]:
+    """解析 LLM 配置,统一出口。优先级:规则页(settings 表)> data/key.md。
+
+    返回规范化的 {base_url, api_key, model};缺 base_url 或 api_key 则 None。
+    规则页改的是 settings 表,即改即生效(下次 Agent 装配/调用读取)。
+    """
+    from ..core import settings
+    base = settings.get_text("llm_base_url")
+    key = settings.get_text("llm_api_key")
+    model = settings.get_text("llm_model")
+
+    # 任一缺则回退 key.md 文件
+    if not (base and key):
+        f = load_key_config()
+        if f:
+            base = base or f.get("ANTHROPIC_BASE_URL", "")
+            key = key or f.get("ANTHROPIC_AUTH_TOKEN", "")
+            model = model or f.get("ANTHROPIC_MODEL", "")
+
+    if not (base and key):
+        return None
+    return {"base_url": base, "api_key": key,
+            "model": model or "deepseek-v4-pro"}
+
+
 class DeepSeekBackend:
     """DeepSeek 便宜云(Anthropic 兼容端点)。
 
@@ -62,12 +87,12 @@ class DeepSeekBackend:
     """
 
     def __init__(self, cfg: Optional[dict] = None, timeout: float = 60.0):
-        cfg = cfg or load_key_config()
+        cfg = cfg or resolve_config()
         if not cfg:
-            raise RuntimeError("未配置 LLM key(data/key.md)")
-        self._base = cfg["ANTHROPIC_BASE_URL"].rstrip("/")
-        self._key = cfg["ANTHROPIC_AUTH_TOKEN"]
-        self._model = cfg.get("ANTHROPIC_MODEL", "deepseek-v4-pro")
+            raise RuntimeError("未配置 LLM(规则页或 data/key.md)")
+        self._base = cfg["base_url"].rstrip("/")
+        self._key = cfg["api_key"]
+        self._model = cfg.get("model", "deepseek-v4-pro")
         self._timeout = timeout
 
     def judge(self, prompt: str, context: Optional[list] = None) -> str:

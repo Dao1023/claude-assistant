@@ -44,6 +44,21 @@ def _taskbar_created_watcher(icon):
     u32 = ctypes.windll.user32
     k32 = ctypes.windll.kernel32
 
+    # 声明 CreateWindowExW 参数/返回类型:64 位下句柄/指针是 64 位,
+    # 不声明则 ctypes 按 32 位 int 处理,hInstance 等溢出 → OverflowError。
+    u32.CreateWindowExW.argtypes = [
+        wintypes.DWORD, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.DWORD,
+        ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+        wintypes.HWND, wintypes.HMENU, wintypes.HINSTANCE, wintypes.LPVOID,
+    ]
+    u32.CreateWindowExW.restype = wintypes.HWND
+    k32.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
+    k32.GetModuleHandleW.restype = wintypes.HINSTANCE
+    # DefWindowProcW 同样吃 64 位 hwnd/lParam,不声明则回调里溢出
+    u32.DefWindowProcW.argtypes = [
+        wintypes.HWND, ctypes.c_uint, wintypes.WPARAM, wintypes.LPARAM]
+    u32.DefWindowProcW.restype = ctypes.c_long
+
     WNDPROC = ctypes.WINFUNCTYPE(
         ctypes.c_long, wintypes.HWND, ctypes.c_uint,
         wintypes.WPARAM, wintypes.LPARAM)

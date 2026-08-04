@@ -91,6 +91,12 @@ class AiReplyIn(BaseModel):
     text: str                        # 用户在浮窗回 AI 的话
 
 
+class LlmConfigIn(BaseModel):
+    base_url: Optional[str] = None   # LLM 端点(传空串清除该项)
+    api_key: Optional[str] = None    # key(空串清除)
+    model: Optional[str] = None      # 模型名(空串清除)
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="Claude Assistant")
 
@@ -314,6 +320,52 @@ def create_app() -> FastAPI:
         agent_mod.get_agent().reply(body.text)
         return {"ok": True}
 
+    # ---------- LLM 配置(规则页) ----------
+
+    @app.get("/api/llm")
+    def api_llm_get():
+        """读 LLM 配置。effective=当前生效值(settings 优先,缺则回退 key.md);
+        saved=规则页存进 settings 的值(供回显,判断「生效值来自哪」)。key 均脱敏。"""
+        from . import llm
+        eff = llm.resolve_config() or {}
+        saved_base = settings_mod.get_text("llm_base_url")
+        saved_key = settings_mod.get_text("llm_api_key")
+        saved_model = settings_mod.get_text("llm_model")
+        return {
+            # 生效值(脱敏):规则页空框的 placeholder,让用户看到「现在用的是什么」
+            "base_url": eff.get("base_url", ""),
+            "api_key": _mask(eff.get("api_key", "")),
+            "model": eff.get("model", ""),
+            "configured": bool(eff),
+            # 规则页存过的值(脱敏),用于标注「生效自规则页 / key.md」
+            "from_settings": bool(saved_base or saved_key or saved_model),
+        }
+
+    @app.put("/api/llm")
+    def api_llm_put(body: LlmConfigIn):
+        """存 LLM 配置到 settings 表。None=不动该项,空串=清除。存后重装配 Agent。"""
+        if body.base_url is not None:
+            settings_mod.set_text("llm_base_url", body.base_url.strip())
+        if body.api_key is not None:
+            settings_mod.set_text("llm_api_key", body.api_key.strip())
+        if body.model is not None:
+            settings_mod.set_text("llm_model", body.model.strip())
+        from . import agent as agent_mod
+        agent_mod.reconfigure()                # 用新配置重建后端
+        return api_llm_get()
+
+    @app.post("/api/llm/test")
+    def api_llm_test():
+        """用当前配置试调一次模型,验证端点/key 有效。"""
+        from . import llm
+        if not llm.resolve_config():
+            return {"ok": False, "error": "未配置 LLM"}
+        try:
+            out = llm.DeepSeekBackend(timeout=20.0).judge("用一句话回答:1+1等于几?")
+            return {"ok": True, "sample": out[:80]}
+        except Exception as e:
+            return {"ok": False, "error": str(e)[:200]}
+
     @app.websocket("/ws")
     async def ws(ws: WebSocket):
         """事件推送通道:浮窗/未来 AI 订阅,被动接收 notify/done/snooze/dnd 等事件。"""
@@ -351,6 +403,13 @@ def _task_title(conn, tid: str):
     """取任务标题(供事件携带,让 AI 订阅者免回查)。任务没了则 None。"""
     task = queries.db.get_task(conn, tid)
     return task["title"] if task else None
+
+
+def _mask(secret: str) -> str:
+    """key 脱敏:只露前 4 位,其余掩码。空则空串。"""
+    if not secret:
+        return ""
+    return secret[:4] + "…" if len(secret) > 4 else "…"
 
 
 def _mount_static(app: FastAPI):

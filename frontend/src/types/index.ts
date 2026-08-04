@@ -167,6 +167,31 @@ export interface AiLogResponse {
   entries: AiLogEntry[]
 }
 
+/** GET /api/llm 返回(base_url/api_key/model 为当前生效值,api_key 脱敏) */
+export interface LlmConfig {
+  base_url: string
+  api_key: string
+  model: string
+  /** 端点+key 是否齐备(能用) */
+  configured: boolean
+  /** 生效值是否来自规则页(settings);false=来自 data/key.md */
+  from_settings: boolean
+}
+
+/** PUT /api/llm 请求体(只传要改的;空串=清除该项) */
+export interface LlmConfigPayload {
+  base_url: string
+  api_key: string
+  model: string
+}
+
+/** POST /api/llm/test 返回 */
+export interface LlmTestResult {
+  ok: boolean
+  sample?: string
+  error?: string
+}
+
 /** 新增任务表单(POST /api/tasks)。drive 创建时定死。 */
 export interface AddTaskPayload {
   title: string
