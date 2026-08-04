@@ -167,11 +167,15 @@ export interface AiLogResponse {
   entries: AiLogEntry[]
 }
 
-/** 对话历史一条(供浮窗重载后回填对话流)。role: user=你说 / ai=AI 说 */
+/** 对话时间线一条(供浮窗重载后回填)。role: user=你说 / ai=AI 说 / system=旁观判断 */
 export interface AiHistoryEntry {
-  role: 'user' | 'ai'
+  role: 'user' | 'ai' | 'system'
   text: string
   ts?: number
+  /** system 行细分:silent=AI 选择沉默 / llm_error=模型调用失败 */
+  kind?: 'silent' | 'llm_error'
+  /** silent 合并计数:连续几次沉默并成一条 */
+  count?: number
 }
 
 /** GET /api/ai/history 返回(正序,最新在尾) */

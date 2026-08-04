@@ -33,7 +33,15 @@ const busy = ref<Record<string, boolean>>({})
 const dndBusy = ref(false)
 
 // ---- AI 列 ----
-interface ChatMsg { role: 'ai' | 'user'; text: string; ts: number }
+interface ChatMsg {
+  role: 'ai' | 'user' | 'system'
+  text: string
+  ts: number
+  /** system 行细分:silent=已静默 / llm_error=模型失败 */
+  kind?: 'silent' | 'llm_error'
+  /** silent 连续合并计数 */
+  count?: number
+}
 const chat = ref<ChatMsg[]>([])
 const replyDraft = ref('')
 const replyBusy = ref(false)
@@ -312,7 +320,13 @@ onMounted(() => {
   // 回填历史对话:浮窗重载后 chat 从后端日志恢复,之后 /ws 增量追加
   fetchAiHistory(50)
     .then((r) => {
-      chat.value = r.entries.map((e) => ({ role: e.role, text: e.text, ts: e.ts ?? Date.now() / 1000 }))
+      chat.value = r.entries.map((e) => ({
+        role: e.role,
+        text: e.text,
+        ts: e.ts ?? Date.now() / 1000,
+        kind: e.kind,
+        count: e.count,
+      }))
       // 历史里的用户消息也进 ↑↓ 翻历史栈
       history.value = r.entries.filter((e) => e.role === 'user').map((e) => e.text)
       nextTick(() => chatListEl.value?.scrollTo({ top: chatListEl.value.scrollHeight }))
@@ -368,8 +382,15 @@ onUnmounted(() => {
             class="np-msg"
             :class="m.role"
           >
+            <!-- 系统行:AI 旁观判断(静默淡灰 / 报错淡红),居中,不占气泡 -->
+            <div v-if="m.role === 'system'" class="np-sysline" :class="m.kind">
+              <template v-if="m.kind === 'silent'">
+                🤫 已静默<template v-if="(m.count ?? 1) > 1"> {{ m.count }} 次</template>
+              </template>
+              <template v-else>⚠️ AI 调用失败:{{ m.text }}</template>
+            </div>
             <!-- AI 气泡渲染 Markdown;用户气泡保持纯文本 -->
-            <div v-if="m.role === 'ai'" class="np-bubble np-md" v-html="renderMd(m.text)"></div>
+            <div v-else-if="m.role === 'ai'" class="np-bubble np-md" v-html="renderMd(m.text)"></div>
             <div v-else class="np-bubble">{{ m.text }}</div>
             <span class="np-msg-time">{{ fmtTime(m.ts) }}</span>
           </div>
@@ -747,6 +768,22 @@ onUnmounted(() => {
 .np-msg.user {
   align-self: flex-end;
   align-items: flex-end;
+}
+/* 系统行:AI 旁观判断,居中、低调,不起气泡 */
+.np-msg.system {
+  align-self: center;
+  max-width: 100%;
+}
+.np-sysline {
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 1px 8px;
+  border-radius: 8px;
+  color: #b6bcc8;                 /* silent:淡灰,尽量不抢戏 */
+}
+.np-sysline.llm_error {
+  color: #d98a8a;                 /* 报错:淡红,能注意到但不刺眼 */
+  background: rgba(224, 82, 82, 0.07);
 }
 .np-bubble {
   padding: 7px 11px;
