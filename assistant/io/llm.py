@@ -21,8 +21,11 @@ KEY_FILE = DATA / "key.md"
 class LLMBackend(Protocol):
     """AI 后端协议:judge 输入 prompt,输出模型的文本回应。"""
 
-    def judge(self, prompt: str, context: Optional[list] = None) -> str:
-        """让模型判断。context 为可选的多轮对话历史([{role, content}])。"""
+    def judge(self, prompt: str, context: Optional[list] = None,
+              system: Optional[str] = None) -> str:
+        """让模型判断。context 为可选的多轮对话历史([{role, content}]);
+        system 为可选的系统提示词(身份/规则/输出协议),走 API 的 system 字段,
+        不进 messages——稳定内容放这里,正好做前缀缓存的「稳定前缀」。"""
         ...
 
 
@@ -70,9 +73,18 @@ class DeepSeekBackend:
         self._model = cfg.get("ANTHROPIC_MODEL", "deepseek-v4-pro")
         self._timeout = timeout
 
-    def judge(self, prompt: str, context: Optional[list] = None) -> str:
+    def judge(self, prompt: str, context: Optional[list] = None,
+              system: Optional[str] = None) -> str:
         messages = list(context or [])
         messages.append({"role": "user", "content": prompt})
+        body = {
+            "model": self._model,
+            "max_tokens": 1024,
+            "messages": messages,
+        }
+        # system 走 Anthropic 协议的独立字段(不进 messages),作前缀缓存的稳定前缀
+        if system:
+            body["system"] = system
         resp = httpx.post(
             f"{self._base}/v1/messages",
             headers={
@@ -80,11 +92,7 @@ class DeepSeekBackend:
                 "anthropic-version": "2023-06-01",
                 "content-type": "application/json",
             },
-            json={
-                "model": self._model,
-                "max_tokens": 1024,
-                "messages": messages,
-            },
+            json=body,
             timeout=self._timeout,
         )
         resp.raise_for_status()
@@ -105,6 +113,7 @@ class MockBackend:
         self._reply = reply
         self.calls = []                     # 记录每次 prompt,供测试断言
 
-    def judge(self, prompt: str, context: Optional[list] = None) -> str:
+    def judge(self, prompt: str, context: Optional[list] = None,
+              system: Optional[str] = None) -> str:
         self.calls.append(prompt)
         return self._reply

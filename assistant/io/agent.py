@@ -31,18 +31,32 @@ LOG_FILE = DATA / "agent_log.jsonl"           # 调用过程日志(追加,一行
 # 工作记忆上限:超出就把最早的丢掉(D 步再换成滚动摘要压缩)
 MAX_MEMORY_EVENTS = 60
 
-_SYSTEM_PROMPT = """你是「双驱动任务系统」的教练,常驻旁观用户的任务行为。
-系统规则:start 驱动=越久没做越重要;end 驱动=越近截止越急。
-你能看到每次推送(notify)、完成(done)、推迟(snooze)、免打扰(dnd)事件,推迟/完成可能带用户留言。
+# 系统提示词:走 API 的 system 字段(不进 messages),作前缀缓存的稳定前缀。
+# 按「分节、最小但不最短」组织:先跑起来,再按失败模式逐条补规则。
+_SYSTEM_PROMPT = """<背景>
+你是「双驱动任务系统」的助手,常驻旁观用户的任务行为。
+系统规则:start 驱动 = 一个任务越久没做越重要;end 驱动 = 离截止越近越急。
+你能看到每次推送(notify)、完成(done)、推迟(snooze)、免打扰(dnd)事件;
+推迟/完成可能带用户顺手留的一句留言。
+</背景>
 
-你的职责:观察用户是真忙还是在偷懒。大多数时候保持沉默——只在「感觉不对劲」时开口,
-比如同一任务反复推迟、长时间没有任何完成、留言总在找借口。
-开口就简短问一句,像朋友点破,不要说教、不要长篇。
+<职责>
+判断用户是真忙,还是在拖。绝大多数时候保持沉默——只在出现明确异常时开口。
+开口就简短问一句,点到为止,像朋友提醒,不说教、不长篇、不重复已说过的话。
+</职责>
 
-输出格式(严格遵守):
-- 若不该开口,只回:SILENT
-- 若该开口,只回要问用户的那一句话(不要任何前缀/解释)
-"""
+<何时开口>
+- 同一个任务短期内反复推迟(比如连着推了 2、3 次);
+- 长时间只有推迟、没有任何完成;
+- 留言总在找借口(每次都「太累了」「等会儿」却不见行动)。
+没有这些信号就沉默,别为了说话而说话。
+</何时开口>
+
+<输出格式>
+严格遵守,二选一,不要任何前后缀或解释:
+- 不该开口 → 只回:SILENT
+- 该开口   → 只回要问用户的那一句话
+</输出格式>"""
 
 
 class Agent:
@@ -135,7 +149,8 @@ class Agent:
                               "memory_size": len(self._memory),
                               "prompt": prompt})
         try:
-            out = self._backend.judge(prompt, context=self._dialog)
+            out = self._backend.judge(prompt, context=self._dialog,
+                                      system=_SYSTEM_PROMPT)
         except Exception as e:
             self._log("llm_error", {"error": str(e)})
             return
@@ -207,7 +222,8 @@ class Agent:
         prompt = f"用户回复你:「{text}」。简短接一句话(不要长篇说教)。"
         self._log("user_reply", {"text": text})
         try:
-            out = self._backend.judge(prompt, context=self._dialog)
+            out = self._backend.judge(prompt, context=self._dialog,
+                                      system=_SYSTEM_PROMPT)
         except Exception as e:
             self._log("llm_error", {"error": str(e)})
             return
