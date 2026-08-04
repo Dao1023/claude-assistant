@@ -475,9 +475,13 @@ onUnmounted(() => {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  /* gap 改由各 .np-msg 的 margin-bottom 承担,保证框选连续 */
   padding: 4px 2px;
   min-height: 0;
+  /* 整个对话区可框选:用户能从第一条一路拖到最后一条全选复制,
+     而不是一次只能圈一条气泡。 */
+  user-select: text;
+  cursor: text;
 }
 .np-chat-empty {
   color: #c0c4cc;
@@ -490,6 +494,9 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   max-width: 85%;
+  /* 用 margin 而非容器 gap 做间隔:gap 间隙不属任何子元素,会切断鼠标框选;
+     margin 让消息块相邻,能从头拖到尾连续全选。 */
+  margin-bottom: 8px;
 }
 .np-msg.ai {
   align-self: flex-start;
