@@ -50,10 +50,11 @@ const replyBusy = ref(false)
 const chatListEl = ref<HTMLElement | null>(null)
 const replyInputEl = ref<HTMLInputElement | null>(null)   // 回复框 ref:发送后保持焦点
 
-// ---- 浮窗尺寸设置(无边框无拖边,用滑条调宽高) ----
+// ---- 浮窗尺寸 + 音量设置(无边框无拖边,用滑条调;音量也在这条弹层) ----
 const showSize = ref(false)
 const sizeW = ref(720)
 const sizeH = ref(560)
+const volume = ref(100)
 const SIZE_RANGE = { w: [480, 1600] as const, h: [360, 1200] as const }
 
 async function toggleSize() {
@@ -64,6 +65,7 @@ async function toggleSize() {
       const find = (k: string) => r.editable.find((s) => s.key === k)?.value
       sizeW.value = find('window_width') ?? 720
       sizeH.value = find('window_height') ?? 560
+      volume.value = find('notify_volume') ?? 100
     } catch { /* 用当前值即可 */ }
   }
 }
@@ -86,6 +88,20 @@ function applySize() {
       ElMessage.error(err instanceof Error ? err.message : '保存失败')
     }
   }, 300)
+}
+
+/** 音量滑条:存设置 + 立刻试播一声,拖的时候能马上听到大小。 */
+let volTimer: number | undefined
+function applyVolume() {
+  window.clearTimeout(volTimer)
+  volTimer = window.setTimeout(async () => {
+    try {
+      await updateSettings({ notify_volume: volume.value })
+      playNotifySound()                        // 试播,验证当前音量
+    } catch (err) {
+      ElMessage.error(err instanceof Error ? err.message : '保存失败')
+    }
+  }, 250)
 }
 
 // ---- 输入历史(终端式 ↑↓ 翻) ----
@@ -342,6 +358,10 @@ onUnmounted(() => {
       <label class="np-size-row">
         <span class="np-size-name">高 {{ sizeH }}px</span>
         <input v-model.number="sizeH" type="range" :min="SIZE_RANGE.h[0]" :max="SIZE_RANGE.h[1]" step="10" @input="applySize" />
+      </label>
+      <label class="np-size-row">
+        <span class="np-size-name">音量 {{ volume }}%</span>
+        <input v-model.number="volume" type="range" min="0" max="100" step="5" @input="applyVolume" />
       </label>
     </div>
 

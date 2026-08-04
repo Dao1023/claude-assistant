@@ -23,30 +23,35 @@ function getCtx(): AudioContext | null {
   }
 }
 
-/** 一个音符:正弦 + 指数衰减包络,避免爆音 */
-function tone(ac: AudioContext, freq: number, at: number, dur: number) {
+/** 一个音符:正弦 + 指数衰减包络,避免爆音。peak 为峰值增益(0-1)。 */
+function tone(ac: AudioContext, freq: number, at: number, dur: number, peak: number) {
   const osc = ac.createOscillator()
   const gain = ac.createGain()
   osc.type = 'sine'
   osc.frequency.value = freq
   gain.gain.setValueAtTime(0.0001, at)
-  gain.gain.exponentialRampToValueAtTime(0.16, at + 0.02)   // 快起音
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + dur)   // 缓释
+  gain.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0001), at + 0.015)  // 快起音
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + dur)                     // 缓释
   osc.connect(gain)
   gain.connect(ac.destination)
   osc.start(at)
   osc.stop(at + dur + 0.05)
 }
 
-/** 播一段提示音(双音上行)。设置关了则静默。 */
+/** 播一段提示音(双音上行)。notify_sound 关则静默;音量按 notify_volume(0-100)。 */
 export async function playNotifySound() {
+  let volume = 1.0                                   // 满幅 = 浏览器不削波的最大音量
   try {
     const r = await fetchRules()
-    if (r.editable.find((s) => s.key === 'notify_sound')?.value === 0) return
-  } catch { /* 拉不到设置就按默认开 */ }
+    const get = (k: string) => r.editable.find((s) => s.key === k)?.value
+    if (get('notify_sound') === 0) return
+    const v = get('notify_volume')
+    if (v != null) volume = Math.min(Math.max(v, 0), 100) / 100
+  } catch { /* 拉不到设置就按默认满幅 */ }
+  if (volume <= 0) return
   const ac = getCtx()
   if (!ac) return
   const t = ac.currentTime
-  tone(ac, 880, t, 0.18)          // A5
-  tone(ac, 1318.5, t + 0.14, 0.26) // E6,错开半拍上行
+  tone(ac, 880, t, 0.22, volume)          // A5
+  tone(ac, 1318.5, t + 0.13, 0.34, volume) // E6,错开半拍上行
 }
