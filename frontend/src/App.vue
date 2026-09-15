@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 
 import { fetchTasks } from '@/api/client'
 import type { EndTask, StartTask, TagInfo, TaskDetail } from '@/types'
-import { ancestorsMap } from '@/utils/tags'
-import TaskColumn from '@/components/TaskColumn.vue'
 import DetailDrawer from '@/components/DetailDrawer.vue'
 import TaskForm from '@/components/TaskForm.vue'
 import RulesPage from '@/components/RulesPage.vue'
 import TagsSidebar from '@/components/TagsSidebar.vue'
+import TagBoard from '@/components/TagBoard.vue'
 
 const activeTab = ref<string>('board')
 
@@ -20,6 +19,8 @@ const allTags = ref<TagInfo[]>([])
 const selectedTags = ref<string[]>([])
 const loading = ref(false)
 
+/** 勾选任一选中标签(或其祖先,隐式继承)的任务才显示;不选则全部显示。
+ *  分组/过滤都在 TagBoard 内做(与侧边栏勾选同源),这里只传原始数据 */
 const drawerVisible = ref(false)
 const activeTaskId = ref<string | null>(null)
 
@@ -43,36 +44,6 @@ function openEdit(task: TaskDetail) {
   editingTask.value = task
   drawerVisible.value = false
   formVisible.value = true
-}
-
-/** 勾选任一选中标签(或其祖先,隐式继承)的任务才显示;不选则全部显示 */
-const ancMap = computed(() => ancestorsMap(allTags.value))
-
-function matchTags(taskTags: string[]): boolean {
-  if (!selectedTags.value.length) return true
-  const sel = new Set(selectedTags.value)
-  return taskTags.some((t) => sel.has(t) || (ancMap.value.get(t) ?? []).some((a) => sel.has(a)))
-}
-
-const filteredStarts = computed(() => starts.value.filter((t) => matchTags(t.tags)))
-const filteredEnds = computed(() => ends.value.filter((t) => matchTags(t.tags)))
-
-function startFooter(task: StartTask): string {
-  if (task.days_since === null || task.days_since === undefined) return '还没做过'
-  if (task.days_since <= 0) return '今天做过'
-  return `${task.days_since.toFixed(1)} 天没做了`
-}
-
-function endFooter(task: EndTask): string {
-  // 后端只给 deadline 时间字符串,倒计时文案前端自己算(数据归后端,文案归前端)。
-  if (!task.deadline) return '无截止时间'
-  const secs = Math.floor((new Date(task.deadline.replace(' ', 'T')).getTime() - Date.now()) / 1000)
-  if (secs <= 0) return '已过期'
-  const days = Math.floor(secs / 86400)
-  if (days >= 1) return `还剩 ${days} 天`
-  const h = Math.floor(secs / 3600)
-  if (h >= 1) return `还剩 ${h} 小时`
-  return `还剩 ${Math.floor(secs / 60)} 分钟`
 }
 
 async function load() {
@@ -129,20 +100,13 @@ onMounted(load)
           </div>
         </header>
 
-        <!-- 两栏 -->
-        <main class="grid flex-1 grid-cols-1 gap-4 p-4 md:grid-cols-2" style="min-height: 0">
-          <TaskColumn
-            heading="START · 越久越重要"
-            accent="#5b9bd5"
-            :tasks="filteredStarts"
-            :footer-of="startFooter"
-            @select="openDetail"
-          />
-          <TaskColumn
-            heading="DDL · 越近越急"
-            accent="#e05252"
-            :tasks="filteredEnds"
-            :footer-of="endFooter"
+        <!-- 按标签分组的卡片看板 -->
+        <main class="board-main">
+          <TagBoard
+            :starts="starts"
+            :ends="ends"
+            :tags="allTags"
+            :selected="selectedTags"
             @select="openDetail"
           />
         </main>
@@ -212,6 +176,14 @@ onMounted(load)
   flex: 1;
   min-width: 0;
   min-height: 0;
+}
+
+/* 卡片看板占满主区并自己滚动 */
+.board-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (min-width: 768px) {

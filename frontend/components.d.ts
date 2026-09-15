@@ -26,7 +26,6 @@ declare module 'vue' {
     ElOption: typeof import('element-plus/es')['ElOption']
     ElRadio: typeof import('element-plus/es')['ElRadio']
     ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
-    ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSlider: typeof import('element-plus/es')['ElSlider']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
@@ -38,9 +37,9 @@ declare module 'vue' {
     NightBand: typeof import('./src/components/NightBand.vue')['default']
     NotifyPage: typeof import('./src/components/NotifyPage.vue')['default']
     RulesPage: typeof import('./src/components/RulesPage.vue')['default']
+    TagBoard: typeof import('./src/components/TagBoard.vue')['default']
     TagsSidebar: typeof import('./src/components/TagsSidebar.vue')['default']
     TaskCard: typeof import('./src/components/TaskCard.vue')['default']
-    TaskColumn: typeof import('./src/components/TaskColumn.vue')['default']
     TaskForm: typeof import('./src/components/TaskForm.vue')['default']
   }
   export interface GlobalDirectives {
