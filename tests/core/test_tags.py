@@ -82,9 +82,15 @@ def test_flat_includes_parent_with_only_grandchild_tasks(conn):
     assert names == ["工作", "科研", "论文"]   # 单链,全含
 
 
-def test_flat_excludes_inactive_subtree(conn):
+def test_flat_includes_idle_tags(conn):
+    # 全量语义:只挂在 done 任务上的「过期」也要在(表单要能选到),排进列表
     _task(conn, "旧任务", ["过期"], done=True)
-    assert tags.flat(conn) == []              # done 任务不算活跃,整条不出现
+    _task(conn, "现役", ["健康"])
+    flat = tags.flat(conn)
+    by_name = {t["name"]: t["parent"] for t in flat}
+    assert by_name == {"过期": None, "健康": None}
+    # 活跃的在前面,闲置的沉底
+    assert [t["name"] for t in flat] == ["健康", "过期"]
 
 
 def test_flat_sorted_by_subtree_active_count(conn):

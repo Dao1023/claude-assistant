@@ -48,9 +48,10 @@ def _subtree_counts(rows, counts):
 
 
 def flat(conn):
-    """平铺 [{name, parent}],供筛选栏建树。parent 为父标签名,根为 None。
+    """平铺 [{name, parent}],供筛选栏/表单建树。parent 为父标签名,根为 None。
 
-    只含有活跃任务(自己或任一子孙)的标签;按子树活跃数降序,同数按名字。
+    全量标签(含无活跃任务的)——表单要能选到闲置标签,看板分组会自己剪掉空组。
+    按子树活跃数降序(闲置的自然沉底),同数按名字。
     """
     rows = _rows(conn)
     if not rows:
@@ -61,7 +62,7 @@ def flat(conn):
         {"name": r["name"],
          "parent": by_id[r["parent_id"]]["name"] if r["parent_id"] in by_id else None,
          "_n": subtree.get(r["id"], 0)}
-        for r in rows if subtree.get(r["id"], 0) > 0
+        for r in rows
     ]
     out.sort(key=lambda t: (-t["_n"], t["name"]))
     for t in out:
