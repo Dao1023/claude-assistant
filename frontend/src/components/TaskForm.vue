@@ -2,16 +2,16 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
-import { addTask, updateTask } from '@/api/client'
+import { addTask, createTag, updateTask } from '@/api/client'
 import type { TagInfo, TaskDetail } from '@/types'
-import { depthMap } from '@/utils/tags'
+import { buildTree, type TagNode } from '@/utils/tags'
 
 interface Props {
   /** 对话框是否可见(v-model) */
   modelValue: boolean
   /** 编辑时传入现有任务(预填);新增时为 null */
   task: TaskDetail | null
-  /** 全部已有标签(平铺带父指针,供选择,也可新建) */
+  /** 全部已有标签(平铺带父指针,全量) */
   allTags: TagInfo[]
 }
 
@@ -21,13 +21,29 @@ const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   /** 提交成功(新增/编辑),通知父组件刷新列表 */
   saved: []
+  /** 表单里新建了标签,父组件刷新标签数据源 */
+  'tags-changed': []
 }>()
 
-/** 标签层级深度(选项缩进用),根=0 */
-const depths = computed(() => depthMap(props.allTags))
+/** 标签树(tree-select 直接吃) */
+const tagTree = computed<TagNode[]>(() => buildTree(props.allTags))
 
-function tagLabel(name: string): string {
-  return '　'.repeat(depths.value.get(name) ?? 0) + name
+/** 新建标签输入(建成根节点,归位去侧边栏拖) */
+const newTag = ref('')
+
+async function addTag() {
+  const name = newTag.value.trim()
+  if (!name) return
+  if (!form.tags.includes(name)) form.tags.push(name)
+  newTag.value = ''
+  if (!props.allTags.some((t) => t.name === name)) {
+    try {
+      await createTag(name)
+      emit('tags-changed')
+    } catch (err) {
+      ElMessage.error(err instanceof Error ? err.message : '新建标签失败')
+    }
+  }
 }
 
 const isEdit = computed(() => props.task !== null)
@@ -196,17 +212,32 @@ function handleUpdate(value: boolean) {
       </el-form-item>
 
       <el-form-item label="标签">
-        <el-select
-          v-model="form.tags"
-          multiple
-          filterable
-          allow-create
-          default-first-option
-          placeholder="选已有标签,或输入新建"
-          style="width: 100%"
-        >
-          <el-option v-for="t in allTags" :key="t.name" :label="tagLabel(t.name)" :value="t.name" />
-        </el-select>
+        <div class="tag-picker">
+          <el-tree-select
+            v-model="form.tags"
+            :data="tagTree"
+            multiple
+            check-strictly
+            node-key="name"
+            :props="{ label: 'name' }"
+            collapse-tags
+            collapse-tags-tooltip
+            default-expand-all
+            :render-after-expand="false"
+            placeholder="选择标签"
+            style="width: 100%"
+          />
+          <div class="tag-create">
+            <el-input
+              v-model="newTag"
+              placeholder="新标签名,回车添加(建成根节点)"
+              size="small"
+              maxlength="20"
+              @keyup.enter="addTag"
+            />
+            <el-button size="small" @click="addTag">添加</el-button>
+          </div>
+        </div>
       </el-form-item>
 
       <el-form-item label="备注">
@@ -232,5 +263,18 @@ function handleUpdate(value: boolean) {
 .cycle-text {
   font-size: 13px;
   color: #606266;
+}
+
+/* 标签选择器:tree-select + 新建行,整体占满表单项宽 */
+.tag-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.tag-create {
+  display: flex;
+  gap: 6px;
 }
 </style>

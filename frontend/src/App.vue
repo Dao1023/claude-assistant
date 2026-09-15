@@ -117,7 +117,7 @@ onMounted(load)
     <RulesPage v-show="activeTab === 'rules'" class="flex-1" style="min-height: 0" />
 
     <DetailDrawer v-model="drawerVisible" :task-id="activeTaskId" @changed="load" @edit="openEdit" />
-    <TaskForm v-model="formVisible" :task="editingTask" :all-tags="allTags" @saved="load" />
+    <TaskForm v-model="formVisible" :task="editingTask" :all-tags="allTags" @saved="load" @tags-changed="load" />
   </div>
 </template>
 
