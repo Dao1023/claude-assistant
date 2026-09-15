@@ -51,9 +51,14 @@ CREATE TABLE schedule (
 ```sql
 CREATE TABLE tags (
   id    INTEGER PRIMARY KEY AUTOINCREMENT,
-  name  TEXT NOT NULL UNIQUE            -- genshin / 家人 / 公司 / 健康 …
+  name  TEXT NOT NULL UNIQUE,           -- genshin / 家人 / 公司 / 健康 …
+  parent_id INTEGER REFERENCES tags(id) -- 父标签,NULL=根;层级读写见 core/tags.py
 );
 ```
+
+> **层级(v0.9.0 起)**:标签为任意深度单父树(如 工作→科研→论文)。旧库用 `db._migrate` 幂等补列,
+> 现有标签全成根节点。语义:隐式继承(任务挂「科研」,筛选「工作」命中);删除=子标签提升到父级+任务断关联。
+> 标签总量小,子孙展开在 Python 递归(core/tags.py),不用递归 SQL。
 
 ### 4. `task_tags` —— 任务-标签关联(多对多)
 
@@ -108,9 +113,13 @@ CREATE TABLE settings (
 | `POST /api/tasks/{id}/close` | `do_close` | 彻底关闭(不再催) |
 | `POST /api/tasks/{id}/snooze` | `do_snooze` | 推迟。可带 `until`(到点,缺省 1h) |
 | `GET /api/snooze-options` | `snooze_options` | 推迟预设(1h/3h/明天/下周) |
-| `GET /api/tasks` | — | 面板数据(starts/ends/tags;tags 按活跃数降序) |
+| `GET /api/tasks` | — | 面板数据(starts/ends/tags;tags 为 `[{name, parent}]` 平铺,筛选栏据此建树) |
 | `GET /api/tasks/{id}` | — | 单任务详情(404 若不存在) |
 | `GET /api/tasks/{id}/pushes` | — | 提醒记录(倒序) |
+| `GET /api/tags` | `tags.tree` | 完整标签树(id/name/count/children),管理页 |
+| `POST /api/tags` | `tags.create` | 建标签(name, parent_id?);重名/空名/父级不存在 400 |
+| `PUT /api/tags/{id}` | `tags.rename/set_parent` | 改名/移父(parent_id 传 null=回根级);防环 400 |
+| `DELETE /api/tags/{id}` | `tags.delete` | 删(子标签提升+任务断关联) |
 | `GET /api/settings` | `settings.all` | 全部通知规则(可编辑项当前值+元信息 + 只读算法说明) |
 | `PUT /api/settings` | `settings.set` | 更新一个/多个可编辑规则;未知 key / 越界 400 |
 | `GET /api/funnel` | `pusher.pick` | 通知漏斗实时统计:每层筛掉了哪些任务(只算不弹);含 `dnd` 总闸当前状态 |

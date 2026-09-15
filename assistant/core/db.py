@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS schedule (
 
 CREATE TABLE IF NOT EXISTS tags (
   id    INTEGER PRIMARY KEY AUTOINCREMENT,
-  name  TEXT NOT NULL UNIQUE
+  name  TEXT NOT NULL UNIQUE,
+  parent_id INTEGER REFERENCES tags(id)   -- 父标签,NULL=根;层级关系见 core/tags.py
 );
 
 CREATE TABLE IF NOT EXISTS task_tags (
@@ -77,6 +78,10 @@ def _migrate(conn):
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(push_log)")}
     if "note" not in cols:
         conn.execute("ALTER TABLE push_log ADD COLUMN note TEXT")
+
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(tags)")}
+    if "parent_id" not in cols:
+        conn.execute("ALTER TABLE tags ADD COLUMN parent_id INTEGER REFERENCES tags(id)")
 
 
 def new_id():

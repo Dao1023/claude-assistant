@@ -14,6 +14,12 @@
 - POST   /api/tasks/{id}/close → 关闭(不再催)
 - POST   /api/tasks/{id}/snooze → 稍后(记 push_log)
 
+标签(层级,见 core/tags.py):
+- GET    /api/tags             → 完整标签树(管理页)
+- POST   /api/tags             → 建标签(name, parent_id?)
+- PUT    /api/tags/{id}        → 改名/移父(parent_id 传 null=回根级)
+- DELETE /api/tags/{id}        → 删(子标签提升+任务断关联)
+
 接口文档:FastAPI 自带 /docs(Swagger)与 /openapi.json,AI 可自查。
 时间字段:前端传/收字符串,本层在出入口与内部 Unix int 互转(core/timeutil.py)。
 开发模式另起 `pnpm dev`(Vite 代理 /api);生产模式由本服务托管 frontend/dist。
@@ -27,7 +33,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from ..config import WEB_DIST
-from ..core import actions, funnel, queries
+from ..core import actions, funnel, queries, tags as tags_mod
 from ..core import settings as settings_mod
 from ..core.timeutil import SECONDS_PER_DAY, now_ts, to_ts
 from . import events
@@ -91,6 +97,11 @@ class AiReplyIn(BaseModel):
     text: str                        # 用户在浮窗回 AI 的话
 
 
+class TagIn(BaseModel):
+    name: Optional[str] = None       # 改名(POST 必填,由端点校验)
+    parent_id: Optional[int] = None  # 父标签;PUT 传 null = 移回根级
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="Claude Assistant")
 
@@ -100,8 +111,66 @@ def create_app() -> FastAPI:
         try:
             actions.close_overdue(conn)          # 超时即关闭:过期 end 任务先落 closed
             data = queries.dashboard_data(conn)
-            data["tags"] = queries.all_tags(conn)
+            data["tags"] = tags_mod.flat(conn)   # [{name, parent}],筛选栏建树
             return data
+        finally:
+            conn.close()
+
+    # ---------- 标签管理(层级) ----------
+
+    @app.get("/api/tags")
+    def api_tags():
+        """完整标签树(含无活跃任务的),供管理页。"""
+        conn = queries.db.connect()
+        try:
+            return {"tree": tags_mod.tree(conn)}
+        finally:
+            conn.close()
+
+    @app.post("/api/tags", status_code=201)
+    def api_tag_add(body: TagIn):
+        if not body.name:
+            raise HTTPException(status_code=400, detail="标签名不能为空")
+        conn = queries.db.connect()
+        try:
+            try:
+                tid = tags_mod.create(conn, body.name, body.parent_id)
+            except LookupError:
+                raise HTTPException(status_code=404, detail="父标签不存在")
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+            return {"id": tid}
+        finally:
+            conn.close()
+
+    @app.put("/api/tags/{tag_id}")
+    def api_tag_update(tag_id: int, body: TagIn):
+        conn = queries.db.connect()
+        try:
+            try:
+                if body.name is not None:
+                    tags_mod.rename(conn, tag_id, body.name)
+                # exclude_unset 区分「没传」和「传了 null」:后者=移回根级
+                if "parent_id" in body.model_dump(exclude_unset=True):
+                    tags_mod.set_parent(conn, tag_id, body.parent_id)
+            except LookupError:
+                raise HTTPException(status_code=404, detail="标签不存在")
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+            return {"updated": True}
+        finally:
+            conn.close()
+
+    @app.delete("/api/tags/{tag_id}")
+    def api_tag_delete(tag_id: int):
+        """删标签:子标签提升到它的父级 + 断开任务关联。"""
+        conn = queries.db.connect()
+        try:
+            try:
+                tags_mod.delete(conn, tag_id)
+            except LookupError:
+                raise HTTPException(status_code=404, detail="标签不存在")
+            return {"deleted": True}
         finally:
             conn.close()
 
