@@ -6,6 +6,7 @@ end 用 deadline+recurrence_interval(秒,可空)。超时即关闭(actions.close
 """
 import json
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -169,6 +170,66 @@ def test_close_overdue_cyclic_clones_next(conn):
     active = db.list_active(conn, "end")
     assert len(active) == 1                                  # 克隆出下一个
     assert active[0]["deadline"] == NOW - 3600 + DAY
+
+
+def test_close_overdue_cyclic_overdue_days_jumps_to_future(conn):
+    # 停机多天场景:过期 10 天,一次 close_overdue 直接跳到第一个未来截止点
+    # (方案 B:停机期间的日子不补记录),不靠后续轮次慢慢爬
+    deadline = NOW - 10 * DAY - 3600
+    r = actions.do_add(conn, {"title": "原神每日", "drive": "end",
+                               "deadline": deadline, "recurrence_interval": DAY})
+    actions.close_overdue(conn, now=NOW)
+    assert db.get_task(conn, r["task_id"])["status"] == "closed"
+    active = db.list_active(conn, "end")
+    assert len(active) == 1                                  # 只克隆出当前份
+    assert active[0]["deadline"] == deadline + 11 * DAY      # 第一个未来点(now + DAY - 3600)
+    assert active[0]["deadline"] > NOW
+
+
+def test_close_overdue_cyclic_multi_day_no_intermediate_records(conn):
+    # 追平不产生中间记录:停 10 天,任务总数只 +1(当前份),没有逐日爬升的垃圾
+    actions.do_add(conn, {"title": "日语每日", "drive": "end",
+                          "deadline": NOW - 10 * DAY, "recurrence_interval": DAY})
+    before = conn.execute("SELECT COUNT(*) AS n FROM tasks").fetchone()["n"]
+    actions.close_overdue(conn, now=NOW)
+    after = conn.execute("SELECT COUNT(*) AS n FROM tasks").fetchone()["n"]
+    assert after - before == 1
+
+
+def test_close_overdue_cyclic_twice_does_not_duplicate(conn):
+    # 连跑两遍不翻倍:第一遍已追平,第二遍无事发生(过期才处理)
+    actions.do_add(conn, {"title": "异环每日", "drive": "end",
+                          "deadline": NOW - 10 * DAY, "recurrence_interval": DAY})
+    actions.close_overdue(conn, now=NOW)
+    actions.close_overdue(conn, now=NOW)
+    assert len(db.list_active(conn, "end")) == 1
+
+
+def test_close_overdue_concurrent_connections_do_not_duplicate(conn):
+    # 面板线程(/api/tasks)与调度线程(tick)同批处理同一过期任务:
+    # 两个连接同时追平,原子认领下只有一方能克隆,链不翻倍。
+    # 每个线程自建连接(sqlite3 连接默认不允许跨线程用)
+    actions.do_add(conn, {"title": "原神每日", "drive": "end",
+                          "deadline": NOW - 10 * DAY, "recurrence_interval": DAY})
+    barrier = threading.Barrier(2)
+
+    def run():
+        c = db.connect()
+        barrier.wait()
+        try:
+            actions.close_overdue(c, now=NOW)
+        finally:
+            c.close()
+
+    workers = [threading.Thread(target=run) for _ in range(2)]
+    for t in workers:
+        t.start()
+    for t in workers:
+        t.join()
+
+    assert len(db.list_active(conn, "end")) == 1
+    total = conn.execute("SELECT COUNT(*) AS n FROM tasks").fetchone()["n"]
+    assert total == 2  # 原 1 条 + 克隆 1 条,不多不少
 
 
 def test_close_overdue_ignores_start(conn):

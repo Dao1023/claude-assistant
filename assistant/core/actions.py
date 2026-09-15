@@ -78,7 +78,11 @@ def do_done(conn, p):
 def close_overdue(conn, now=None):
     """把已过 deadline 的 active end 任务置为 closed(超时即结束)。
 
-    周期任务(recurrence_interval 非空)同时克隆下一个实例(deadline 顺延)。
+    周期任务(recurrence_interval 非空)同时克隆下一个实例,deadline 一次跳到
+    第一个未来截止点——停机多天也一轮追平,期间错过的日子不补记录(与
+    「程序一直开着」等价:那些天的实例直接缺席,统计上视作不存在)。
+    认领用条件 UPDATE 原子完成:抢到 active→closed 的才克隆。两份程序并发
+    处理同一行时,SQLite 写锁串行,后者 rowcount=0 直接跳过,链不会翻倍。
     返回关闭的任务数。在 engine.today_lists / pusher.tick_push 入口调用。
     """
     now = now if now is not None else now_ts()
@@ -89,10 +93,19 @@ def close_overdue(conn, now=None):
         " AND s.deadline IS NOT NULL AND s.deadline < ?",
         (now,)).fetchall()
     for task in rows:
-        if task["recurrence_interval"]:
-            _clone_next(conn, task,
-                        deadline=int(task["deadline"]) + int(task["recurrence_interval"]))
-        db.set_status(conn, task["id"], "closed")
+        interval = task["recurrence_interval"]
+        with conn:
+            # 原子认领:rowcount=1 才轮到我克隆(嵌套 with conn 幂等,
+            # 认领 UPDATE 与克隆 INSERT 在 _clone_next 提交时一并落盘)
+            claimed = conn.execute(
+                "UPDATE tasks SET status='closed' WHERE id=? AND status='active'",
+                (task["id"],)).rowcount
+            if claimed and interval:
+                # k = ceil(过期时长 / 间隔):跳过整数个周期到第一个未来点,
+                # 精确保留原 deadline 的时分(如每日 4:00 重置的不变)
+                old = int(task["deadline"])
+                k = (now - old + int(interval) - 1) // int(interval)
+                _clone_next(conn, task, deadline=old + k * int(interval))
     return len(rows)
 
 

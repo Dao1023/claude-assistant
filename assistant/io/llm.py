@@ -75,6 +75,11 @@ class DeepSeekBackend:
 
     def judge(self, prompt: str, context: Optional[list] = None,
               system: Optional[str] = None) -> str:
+        # AI 总开关:关掉直接返回空串、不发 HTTP 请求(省 DeepSeek 费用)。
+        # Agent 拿到空串 → 走沉默分支,不开口。开关由 /api/ai/toggle 改 settings。
+        from ..core import settings
+        if not settings.get_ai_enabled():
+            return ""
         messages = list(context or [])
         messages.append({"role": "user", "content": prompt})
         body = {

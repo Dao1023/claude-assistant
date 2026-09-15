@@ -15,9 +15,11 @@ import { marked } from 'marked'
 import {
   doneTask,
   fetchAiHistory,
+  fetchAiStatus,
   fetchRules,
   fetchSnoozeOptions,
   replyAi,
+  setAiEnabled,
   setDnd,
   snoozeTask,
   updateSettings,
@@ -45,6 +47,7 @@ interface ChatMsg {
   trigger?: Record<string, unknown>
 }
 const chat = ref<ChatMsg[]>([])
+const aiEnabled = ref(true)        // AI 助手总开关:关掉隐藏左列 + 后端 judge 不发请求
 const replyDraft = ref('')
 const replyBusy = ref(false)
 const chatListEl = ref<HTMLElement | null>(null)
@@ -55,7 +58,8 @@ const showSize = ref(false)
 const sizeW = ref(720)
 const sizeH = ref(560)
 const volume = ref(100)
-const SIZE_RANGE = { w: [480, 1600] as const, h: [360, 1200] as const }
+// 最小 320×240:再小待办卡(标题+留言框+按钮)会挤;关 AI 走单列时这宽度也够用
+const SIZE_RANGE = { w: [320, 1600] as const, h: [240, 1200] as const }
 
 async function toggleSize() {
   showSize.value = !showSize.value
@@ -195,6 +199,18 @@ async function onReply() {
   }
 }
 
+/** 开/关 AI 助手:切后端开关 + 本地左列显隐。关掉后 judge 不发请求,省费用。 */
+async function toggleAi() {
+  const next = !aiEnabled.value
+  try {
+    const r = await setAiEnabled(next)
+    aiEnabled.value = r.enabled
+    ElMessage.success(r.enabled ? 'AI 已开启' : 'AI 已关闭,不再调用模型')
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '切换失败')
+  }
+}
+
 /** ↑↓ 翻输入历史(终端式)。↑ 往旧的翻,↓ 往新的翻,翻过最新恢复暂存草稿。 */
 function onHistoryKey(e: KeyboardEvent) {
   if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
@@ -316,9 +332,16 @@ async function snoozeAll() {
 onMounted(() => {
   connect()
   window.addEventListener('keydown', onKeydown)   // Esc 隐藏
-  // 回填历史对话:浮窗重载后 chat 从后端日志恢复,之后 /ws 增量追加
-  fetchAiHistory(50)
+  // 先拉 AI 开关:决定左列显隐;开着才回填历史(关了左列不显示,不必拉)
+  fetchAiStatus()
     .then((r) => {
+      aiEnabled.value = r.enabled
+      if (!r.enabled) return null
+      // 回填历史对话:浮窗重载后 chat 从后端日志恢复,之后 /ws 增量追加
+      return fetchAiHistory(50)
+    })
+    .then((r) => {
+      if (!r) return
       chat.value = r.entries.map((e) => ({
         role: e.role,
         text: e.text,
@@ -346,6 +369,11 @@ onUnmounted(() => {
       <span class="np-title">🔔 弹窗</span>
       <span v-if="tasks.length" class="np-count">{{ tasks.length }}</span>
       <button class="np-gear" title="窗口大小" @click.stop="toggleSize">⚙</button>
+      <button
+        class="np-ai-toggle"
+        :title="aiEnabled ? '关闭 AI(停止调用模型,省费用)' : '开启 AI'"
+        @click.stop="toggleAi"
+      >{{ aiEnabled ? '🤖 关闭 AI' : '💤 开启 AI' }}</button>
       <button class="np-close" title="隐藏(Esc;有通知再弹)。Ctrl+R 重载拿新构建" @click="hideWindow">×</button>
     </div>
 
@@ -365,9 +393,9 @@ onUnmounted(() => {
       </label>
     </div>
 
-    <div class="np-cols">
-      <!-- 左列:AI 助手对话 -->
-      <section class="np-ai">
+    <div class="np-cols" :style="{ gridTemplateColumns: aiEnabled ? '1fr 1fr' : '1fr' }">
+      <!-- 左列:AI 助手对话(关掉 AI 时整列隐藏,待办占满) -->
+      <section v-if="aiEnabled" class="np-ai">
         <div class="np-ai-head">
           <span class="np-col-title">🤖 AI 助手</span>
         </div>
@@ -536,6 +564,22 @@ onUnmounted(() => {
 .np-gear:hover {
   background: #eceff3;
   color: #555;
+}
+/* AI 总开关按钮:文字按钮,关/开两态。放顶部,关了左列后仍可见可再开 */
+.np-ai-toggle {
+  border: 1px solid #dcdfe6;
+  background: #fff;
+  color: #606266;
+  font-size: 11px;
+  border-radius: 5px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.np-ai-toggle:hover {
+  border-color: #5b9bd5;
+  color: #5b9bd5;
 }
 .np-close {
   margin-left: 0;

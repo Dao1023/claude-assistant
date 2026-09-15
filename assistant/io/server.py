@@ -343,6 +343,19 @@ def create_app() -> FastAPI:
         agent_mod.get_agent().reply(body.text)
         return {"ok": True}
 
+    @app.get("/api/ai/status")
+    def api_ai_status():
+        """AI 助手总开关当前状态(供浮窗启动时决定显隐左列)。"""
+        return {"enabled": settings_mod.get_ai_enabled()}
+
+    @app.post("/api/ai/toggle")
+    def api_ai_toggle(body: dict):
+        """开/关 AI 助手。enabled=False → judge 不再发 LLM 请求,省费用。
+        不动 Agent 线程/订阅:judge 下次被调自然读到新值,被拦即返空串。"""
+        enabled = bool(body.get("enabled"))
+        settings_mod.set_ai_enabled(enabled)
+        return {"enabled": settings_mod.get_ai_enabled()}
+
     @app.websocket("/ws")
     async def ws(ws: WebSocket):
         """事件推送通道:浮窗/未来 AI 订阅,被动接收 notify/done/snooze/dnd 等事件。"""

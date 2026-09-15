@@ -113,3 +113,30 @@ def set_dnd_until(until):
             db.set_setting(conn, "dnd_until", int(until))
     finally:
         conn.close()
+
+
+# ---- AI 助手总开关(ai_disabled 标记)----
+# 仿 dnd_until 走 db 键值表(布尔偏好,非规则页数值项,不进 SETTINGS)。
+# 存「ai_disabled」标记:有标记 = 关闭(judge 不发 LLM 请求,省费用);无标记 = 开启(默认)。
+# 用「关闭标记」而非「开启值」:键不存在时 get 默认返回开启,不用猜 get_setting 对缺省键的返回。
+
+def get_ai_enabled() -> bool:
+    """AI 助手是否开启(默认开)。关掉后 judge 不发请求——省 DeepSeek 费用。"""
+    try:
+        conn = db.connect()
+        try:
+            raw = db.get_setting(conn, "ai_disabled")
+        finally:
+            conn.close()
+    except Exception:
+        return True
+    return not raw                # 有标记 → not = 关闭;无标记(None/"")→ not = 开启
+
+
+def set_ai_enabled(on: bool) -> None:
+    """开/关 AI 助手。on=True 清标记(开启),on=False 写标记(关闭)。"""
+    conn = db.connect()
+    try:
+        db.set_setting(conn, "ai_disabled", "" if on else "1")
+    finally:
+        conn.close()

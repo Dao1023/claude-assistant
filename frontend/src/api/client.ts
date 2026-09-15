@@ -195,3 +195,25 @@ export async function replyAi(text: string): Promise<void> {
     throw new Error(`发送失败:${res.status} ${res.statusText}`)
   }
 }
+
+/** AI 助手总开关当前状态(浮窗启动时决定显隐左列)。 */
+export async function fetchAiStatus(): Promise<{ enabled: boolean }> {
+  const res = await fetch('/api/ai/status', { headers: { Accept: 'application/json' } })
+  if (!res.ok) {
+    throw new Error(`请求失败:${res.status} ${res.statusText}`)
+  }
+  return (await res.json()) as { enabled: boolean }
+}
+
+/** 开/关 AI 助手。enabled=false → 后端 judge 不再发 LLM 请求(省费用)。 */
+export async function setAiEnabled(enabled: boolean): Promise<{ enabled: boolean }> {
+  const res = await fetch('/api/ai/toggle', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  })
+  if (!res.ok) {
+    throw new Error(`切换失败:${res.status} ${res.statusText}`)
+  }
+  return (await res.json()) as { enabled: boolean }
+}
