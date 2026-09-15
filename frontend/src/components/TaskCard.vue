@@ -31,13 +31,11 @@ const importanceText = computed(() => props.importance.toFixed(2))
 
 <template>
   <div class="task-card" :style="{ borderLeftColor: accent }" @click="emit('select')">
-    <div class="flex items-start justify-between gap-3">
-      <h3 class="task-title">{{ title }}</h3>
-      <span class="imp-badge" :class="importanceClass">{{ importanceText }}</span>
-    </div>
+    <h3 class="task-title">{{ title }}</h3>
 
-    <div class="mt-1 md:mt-2 flex items-center justify-between gap-2">
+    <div class="task-meta">
       <span class="task-footer">{{ footer }}</span>
+      <span class="imp-badge" :class="importanceClass">{{ importanceText }}</span>
       <div v-if="tags.length" class="flex flex-wrap justify-end gap-1">
         <span v-for="t in tags" :key="t" class="tag-chip">#{{ t }}</span>
       </div>
@@ -81,6 +79,15 @@ const importanceText = computed(() => props.importance.toFixed(2))
   word-break: break-word;
 }
 
+/* 元信息统一沉底:时间文案(左) + 重要性(中) + 标签(右) */
+.task-meta {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .imp-badge {
   flex-shrink: 0;
   font-size: 12px;
@@ -110,6 +117,10 @@ const importanceText = computed(() => props.importance.toFixed(2))
 .task-footer {
   font-size: 12px;
   color: #909399;
+  margin-right: auto; /* 时间文案靠左,重要性+标签挤右边 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tag-chip {
