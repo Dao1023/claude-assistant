@@ -10,3 +10,6 @@ data/
 # 前端
 frontend/node_modules/
 frontend/dist/
+
+# brainstorming 视觉 companion 过程稿
+.superpowers/
