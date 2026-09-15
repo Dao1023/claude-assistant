@@ -47,3 +47,13 @@ function clear() {
     </el-button>
   </div>
 </template>
+
+<style scoped>
+/* Element Plus 的 el-check-tag 默认偏大(14px/7-15/加粗),收小。
+   它是第三方组件,scoped :deep 的选择器特异性高于 .el-check-tag 默认,稳定覆盖。 */
+:deep(.el-check-tag) {
+  font-size: 11px;
+  padding: 3px 8px;
+  font-weight: 400;
+}
+</style>
