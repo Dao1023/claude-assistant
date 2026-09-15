@@ -6,12 +6,11 @@ import { Plus, Refresh } from '@element-plus/icons-vue'
 import { fetchTasks } from '@/api/client'
 import type { EndTask, StartTask, TagInfo, TaskDetail } from '@/types'
 import { ancestorsMap } from '@/utils/tags'
-import TagFilter from '@/components/TagFilter.vue'
 import TaskColumn from '@/components/TaskColumn.vue'
 import DetailDrawer from '@/components/DetailDrawer.vue'
 import TaskForm from '@/components/TaskForm.vue'
 import RulesPage from '@/components/RulesPage.vue'
-import TagsPage from '@/components/TagsPage.vue'
+import TagsSidebar from '@/components/TagsSidebar.vue'
 
 const activeTab = ref<string>('board')
 
@@ -95,64 +94,63 @@ onMounted(load)
 
 <template>
   <div class="flex h-full flex-col">
-    <!-- 顶部 Tab:任务看板 | 通知规则 | 标签管理 -->
+    <!-- 顶部 Tab:任务看板 | 通知规则 -->
     <el-tabs v-model="activeTab" class="page-tabs">
       <el-tab-pane label="任务看板" name="board" />
       <el-tab-pane label="通知规则" name="rules" />
-      <el-tab-pane label="标签管理" name="tags" />
     </el-tabs>
 
-    <!-- 看板视图 -->
-    <div v-show="activeTab === 'board'" class="flex flex-1 flex-col" style="min-height: 0" v-loading="loading">
-      <!-- 顶部:标题 + 筛选 + 刷新 -->
-      <header class="topbar">
-        <div class="flex items-center gap-3">
-          <h1 class="app-title">Claude Assistant · 任务面板</h1>
-          <el-button
-            :icon="Refresh"
-            circle
-            size="small"
-            :loading="loading"
-            title="刷新"
-            @click="load"
-          />
-          <el-button
-            class="add-btn"
-            type="primary"
-            size="small"
-            :icon="Plus"
-            @click="openAdd"
-          >
-            新增任务
-          </el-button>
-        </div>
-        <TagFilter v-model="selectedTags" :tags="allTags" />
-      </header>
+    <!-- 看板视图:左标签栏(筛选+管理) + 右双列任务 -->
+    <div v-show="activeTab === 'board'" class="board flex-1" style="min-height: 0" v-loading="loading">
+      <TagsSidebar v-model="selectedTags" class="sidebar" @changed="load" />
 
-      <!-- 两栏 -->
-      <main class="grid flex-1 grid-cols-1 gap-4 p-4 md:grid-cols-2" style="min-height: 0">
-        <TaskColumn
-          heading="START · 越久越重要"
-          accent="#5b9bd5"
-          :tasks="filteredStarts"
-          :footer-of="startFooter"
-          @select="openDetail"
-        />
-        <TaskColumn
-          heading="DDL · 越近越急"
-          accent="#e05252"
-          :tasks="filteredEnds"
-          :footer-of="endFooter"
-          @select="openDetail"
-        />
-      </main>
+      <div class="main-col">
+        <!-- 顶部:标题 + 刷新 -->
+        <header class="topbar">
+          <div class="flex items-center gap-3">
+            <h1 class="app-title">Claude Assistant · 任务面板</h1>
+            <el-button
+              :icon="Refresh"
+              circle
+              size="small"
+              :loading="loading"
+              title="刷新"
+              @click="load"
+            />
+            <el-button
+              class="add-btn"
+              type="primary"
+              size="small"
+              :icon="Plus"
+              @click="openAdd"
+            >
+              新增任务
+            </el-button>
+          </div>
+        </header>
+
+        <!-- 两栏 -->
+        <main class="grid flex-1 grid-cols-1 gap-4 p-4 md:grid-cols-2" style="min-height: 0">
+          <TaskColumn
+            heading="START · 越久越重要"
+            accent="#5b9bd5"
+            :tasks="filteredStarts"
+            :footer-of="startFooter"
+            @select="openDetail"
+          />
+          <TaskColumn
+            heading="DDL · 越近越急"
+            accent="#e05252"
+            :tasks="filteredEnds"
+            :footer-of="endFooter"
+            @select="openDetail"
+          />
+        </main>
+      </div>
     </div>
 
     <!-- 规则视图 -->
     <RulesPage v-show="activeTab === 'rules'" class="flex-1" style="min-height: 0" />
-
-    <!-- 标签管理 -->
-    <TagsPage v-show="activeTab === 'tags'" class="flex-1" style="min-height: 0" @changed="load" />
 
     <DetailDrawer v-model="drawerVisible" :task-id="activeTaskId" @changed="load" @edit="openEdit" />
     <TaskForm v-model="formVisible" :task="editingTask" :all-tags="allTags" @saved="load" />
@@ -193,5 +191,40 @@ onMounted(load)
 
 .add-btn {
   margin-left: auto;
+}
+
+/* 看板:左标签栏 + 右主区。窄屏标签栏变顶部横条,宽屏回左侧栏 */
+.board {
+  display: flex;
+  flex-direction: column;
+}
+
+.board .sidebar {
+  width: 100%;
+  max-height: 220px;
+  border-right: none;
+  border-bottom: 1px solid #eceef3;
+}
+
+.board .main-col {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (min-width: 768px) {
+  .board {
+    flex-direction: row;
+  }
+
+  .board .sidebar {
+    width: 224px;
+    max-height: none;
+    flex-shrink: 0;
+    border-right: 1px solid #eceef3;
+    border-bottom: none;
+  }
 }
 </style>
