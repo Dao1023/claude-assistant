@@ -27,7 +27,28 @@ export interface EndTask {
 export interface TasksResponse {
   starts: StartTask[]
   ends: EndTask[]
-  tags: string[]
+  /** 平铺标签(带父指针,parent 为父标签名,根为 null),筛选栏/表单据此建树 */
+  tags: TagInfo[]
+}
+
+/** 平铺标签(层级) */
+export interface TagInfo {
+  name: string
+  parent: string | null
+}
+
+/** 管理页标签树节点(count=直接活跃任务数) */
+export interface TagTreeNode {
+  id: number
+  name: string
+  parent_id: number | null
+  count: number
+  children: TagTreeNode[]
+}
+
+/** GET /api/tags 返回(完整标签树,含无活跃任务的) */
+export interface TagsResponse {
+  tree: TagTreeNode[]
 }
 
 /** GET /api/tasks/{id} 单任务详情 */

@@ -4,18 +4,20 @@ import { ElMessage } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 
 import { fetchTasks } from '@/api/client'
-import type { EndTask, StartTask, TaskDetail } from '@/types'
+import type { EndTask, StartTask, TagInfo, TaskDetail } from '@/types'
+import { ancestorsMap } from '@/utils/tags'
 import TagFilter from '@/components/TagFilter.vue'
 import TaskColumn from '@/components/TaskColumn.vue'
 import DetailDrawer from '@/components/DetailDrawer.vue'
 import TaskForm from '@/components/TaskForm.vue'
 import RulesPage from '@/components/RulesPage.vue'
+import TagsPage from '@/components/TagsPage.vue'
 
 const activeTab = ref<string>('board')
 
 const starts = ref<StartTask[]>([])
 const ends = ref<EndTask[]>([])
-const allTags = ref<string[]>([])
+const allTags = ref<TagInfo[]>([])
 const selectedTags = ref<string[]>([])
 const loading = ref(false)
 
@@ -44,10 +46,13 @@ function openEdit(task: TaskDetail) {
   formVisible.value = true
 }
 
-/** 勾选任一选中 tag 的任务才显示;不选则全部显示 */
+/** 勾选任一选中标签(或其祖先,隐式继承)的任务才显示;不选则全部显示 */
+const ancMap = computed(() => ancestorsMap(allTags.value))
+
 function matchTags(taskTags: string[]): boolean {
   if (!selectedTags.value.length) return true
-  return taskTags.some((t) => selectedTags.value.includes(t))
+  const sel = new Set(selectedTags.value)
+  return taskTags.some((t) => sel.has(t) || (ancMap.value.get(t) ?? []).some((a) => sel.has(a)))
 }
 
 const filteredStarts = computed(() => starts.value.filter((t) => matchTags(t.tags)))
@@ -90,10 +95,11 @@ onMounted(load)
 
 <template>
   <div class="flex h-full flex-col">
-    <!-- 顶部 Tab:任务看板 | 通知规则 -->
+    <!-- 顶部 Tab:任务看板 | 通知规则 | 标签管理 -->
     <el-tabs v-model="activeTab" class="page-tabs">
       <el-tab-pane label="任务看板" name="board" />
       <el-tab-pane label="通知规则" name="rules" />
+      <el-tab-pane label="标签管理" name="tags" />
     </el-tabs>
 
     <!-- 看板视图 -->
@@ -144,6 +150,9 @@ onMounted(load)
 
     <!-- 规则视图 -->
     <RulesPage v-show="activeTab === 'rules'" class="flex-1" style="min-height: 0" />
+
+    <!-- 标签管理 -->
+    <TagsPage v-show="activeTab === 'tags'" class="flex-1" style="min-height: 0" @changed="load" />
 
     <DetailDrawer v-model="drawerVisible" :task-id="activeTaskId" @changed="load" @edit="openEdit" />
     <TaskForm v-model="formVisible" :task="editingTask" :all-tags="allTags" @saved="load" />

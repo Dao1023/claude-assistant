@@ -3,15 +3,16 @@ import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { addTask, updateTask } from '@/api/client'
-import type { TaskDetail } from '@/types'
+import type { TagInfo, TaskDetail } from '@/types'
+import { depthMap } from '@/utils/tags'
 
 interface Props {
   /** 对话框是否可见(v-model) */
   modelValue: boolean
   /** 编辑时传入现有任务(预填);新增时为 null */
   task: TaskDetail | null
-  /** 全部已有标签(供选择,也可新建) */
-  allTags: string[]
+  /** 全部已有标签(平铺带父指针,供选择,也可新建) */
+  allTags: TagInfo[]
 }
 
 const props = defineProps<Props>()
@@ -21,6 +22,13 @@ const emit = defineEmits<{
   /** 提交成功(新增/编辑),通知父组件刷新列表 */
   saved: []
 }>()
+
+/** 标签层级深度(选项缩进用),根=0 */
+const depths = computed(() => depthMap(props.allTags))
+
+function tagLabel(name: string): string {
+  return '　'.repeat(depths.value.get(name) ?? 0) + name
+}
 
 const isEdit = computed(() => props.task !== null)
 const title = computed(() => (isEdit.value ? '编辑任务' : '新增任务'))
@@ -197,7 +205,7 @@ function handleUpdate(value: boolean) {
           placeholder="选已有标签,或输入新建"
           style="width: 100%"
         >
-          <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
+          <el-option v-for="t in allTags" :key="t.name" :label="tagLabel(t.name)" :value="t.name" />
         </el-select>
       </el-form-item>
 

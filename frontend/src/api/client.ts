@@ -6,6 +6,7 @@ import type {
   PushesResponse,
   RulesResponse,
   SnoozeOptionsResponse,
+  TagsResponse,
   TaskDetail,
   TasksResponse,
   UpdateTaskPayload,
@@ -119,6 +120,50 @@ export async function updateTask(id: string, payload: UpdateTaskPayload): Promis
   })
   if (!res.ok) {
     throw new Error(res.status === 404 ? '任务不存在' : `保存失败:${res.status} ${res.statusText}`)
+  }
+}
+
+/** 读后端 400 的 detail(中文提示)给调用方展示。 */
+async function _detail(res: Response): Promise<string> {
+  const body = await res.json().catch(() => null)
+  return body?.detail ?? `请求失败:${res.status}`
+}
+
+/** 完整标签树(管理页)。 */
+export async function fetchTags(): Promise<TagsResponse> {
+  const res = await fetch('/api/tags', { headers: { Accept: 'application/json' } })
+  if (!res.ok) throw new Error(await _detail(res))
+  return (await res.json()) as TagsResponse
+}
+
+/** 建标签;parentId 缺省=根级。重名/防环抛后端中文提示。 */
+export async function createTag(name: string, parentId?: number | null): Promise<{ id: number }> {
+  const res = await fetch('/api/tags', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, parent_id: parentId ?? null }),
+  })
+  if (!res.ok) throw new Error(await _detail(res))
+  return (await res.json()) as { id: number }
+}
+
+/** 改标签:改名 / 移父(parentId 传 null=回根级)。不传=不动。 */
+export async function updateTag(id: number, patch: { name?: string; parent_id?: number | null }): Promise<void> {
+  const res = await fetch(`/api/tags/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  if (!res.ok) {
+    throw new Error(res.status === 404 ? '标签不存在' : await _detail(res))
+  }
+}
+
+/** 删标签:子标签提升到它的父级 + 任务断关联。 */
+export async function deleteTag(id: number): Promise<void> {
+  const res = await fetch(`/api/tags/${id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    throw new Error(res.status === 404 ? '标签不存在' : `删除失败:${res.status}`)
   }
 }
 
