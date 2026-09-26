@@ -53,25 +53,39 @@ def _clone_next(conn, task, *, anchor=None, deadline=None):
 
 
 def do_done(conn, p):
-    """完成任务(-> done)。周期任务克隆下一个实例。cyclic 返回是否克隆了。"""
+    """完成任务(-> done)。周期任务克隆下一个实例。cyclic 返回是否克隆了。
+
+    原子认领(与 close_overdue 同一套):条件 UPDATE 抢 active->done,抢不到
+    (已被完成/关闭/跨天关闭)直接拒绝、不克隆——残留卡片上的迟到「完成」、
+    双击、双端同点,只有第一次生效,不会克隆出两份。这是 2026-09 每日任务
+    翻倍 bug 的根因,复现与回归见 tests/core/test_dup_repro.py。
+    """
     tid = p["task_id"]
-    task = db.get_task(conn, tid)
-    if not task:
-        return {"error": "task not found"}
-    cloned = False
-    if task["drive"] == "start" and task["is_cyclic"]:
-        # start 周期:锚点重置为 now
-        _clone_next(conn, task, anchor=now())
-        cloned = True
-    elif task["drive"] == "end":
-        sched = conn.execute("SELECT deadline, recurrence_interval FROM schedule WHERE task_id=?",
-                             (tid,)).fetchone()
-        if sched["recurrence_interval"] and sched["deadline"] is not None:
-            # end 周期:deadline 顺延一个间隔(精确保留时分)
-            _clone_next(conn, task,
-                        deadline=int(sched["deadline"]) + int(sched["recurrence_interval"]))
+    with conn:
+        claimed = conn.execute(
+            "UPDATE tasks SET status='done' WHERE id=? AND status='active'",
+            (tid,)).rowcount
+        if not claimed:
+            return {"task_id": tid, "error": "task not active"}
+        task = db.get_task(conn, tid)
+        cloned = False
+        if task["drive"] == "start" and task["is_cyclic"]:
+            # start 周期:锚点重置为 now
+            _clone_next(conn, task, anchor=now())
             cloned = True
-    db.set_status(conn, tid, "done")
+        elif task["drive"] == "end":
+            sched = conn.execute(
+                "SELECT deadline, recurrence_interval FROM schedule WHERE task_id=?",
+                (tid,)).fetchone()
+            if sched["recurrence_interval"] and sched["deadline"] is not None:
+                # end 周期:deadline 跳到第一个未来截止点(精确保留时分)。
+                # 与 close_overdue 同一套 k 跳:未到期完成恰好顺延一个间隔;
+                # 过期补做不再盲目 +interval 克隆出「出生即过期」的实例
+                old = int(sched["deadline"])
+                interval = int(sched["recurrence_interval"])
+                k = max((now() - old + interval - 1) // interval, 1)
+                _clone_next(conn, task, deadline=old + k * interval)
+                cloned = True
     return {"task_id": tid, "done": True, "cyclic": cloned}
 
 
@@ -83,7 +97,9 @@ def close_overdue(conn, now=None):
     「程序一直开着」等价:那些天的实例直接缺席,统计上视作不存在)。
     认领用条件 UPDATE 原子完成:抢到 active→closed 的才克隆。两份程序并发
     处理同一行时,SQLite 写锁串行,后者 rowcount=0 直接跳过,链不会翻倍。
-    返回关闭的任务数。在 engine.today_lists / pusher.tick_push 入口调用。
+    返回本次真正关闭的 task_id 列表(io 层据此发 closed 事件,撤掉浮窗残留卡;
+    并发下只含本连接认领的那部分)。在 engine.today_lists / pusher.tick_push
+    入口调用。
     """
     now = now if now is not None else now_ts()
     rows = conn.execute(
@@ -92,6 +108,7 @@ def close_overdue(conn, now=None):
         " WHERE t.drive='end' AND t.status='active'"
         " AND s.deadline IS NOT NULL AND s.deadline < ?",
         (now,)).fetchall()
+    closed_ids = []
     for task in rows:
         interval = task["recurrence_interval"]
         with conn:
@@ -100,13 +117,15 @@ def close_overdue(conn, now=None):
             claimed = conn.execute(
                 "UPDATE tasks SET status='closed' WHERE id=? AND status='active'",
                 (task["id"],)).rowcount
-            if claimed and interval:
-                # k = ceil(过期时长 / 间隔):跳过整数个周期到第一个未来点,
-                # 精确保留原 deadline 的时分(如每日 4:00 重置的不变)
-                old = int(task["deadline"])
-                k = (now - old + int(interval) - 1) // int(interval)
-                _clone_next(conn, task, deadline=old + k * int(interval))
-    return len(rows)
+            if claimed:
+                closed_ids.append(task["id"])
+                if interval:
+                    # k = ceil(过期时长 / 间隔):跳过整数个周期到第一个未来点,
+                    # 精确保留原 deadline 的时分(如每日 4:00 重置的不变)
+                    old = int(task["deadline"])
+                    k = (now - old + int(interval) - 1) // int(interval)
+                    _clone_next(conn, task, deadline=old + k * int(interval))
+    return closed_ids
 
 
 def do_update(conn, p):

@@ -146,12 +146,47 @@ def test_done_oneoff_end_does_not_clone(conn):
     assert len(db.list_active(conn, "end")) == before - 1
 
 
+def test_done_on_closed_task_rejected_without_clone(conn):
+    # 残留卡片上的迟到「完成」:任务已被跨天关闭,再点完成必须拒绝、不克隆
+    r = actions.do_add(conn, {"title": "日语每日", "drive": "end",
+                              "deadline": NOW - 3600, "recurrence_interval": DAY})
+    actions.close_overdue(conn, now=NOW)                     # 跨天:关旧克隆新
+    res = actions.do_done(conn, {"task_id": r["task_id"]})   # 迟到的完成
+    assert res.get("error")
+    assert len(db.list_active(conn, "end")) == 1             # 不冒出第二份
+
+
+def test_done_concurrent_double_click_clones_once(conn):
+    # 双击/双端同点完成:两个连接并发 do_done,原子认领下只有一方克隆
+    r = actions.do_add(conn, {"title": "原神每日", "drive": "end",
+                              "deadline": NOW + 3600, "recurrence_interval": DAY})
+    barrier = threading.Barrier(2)
+
+    def run():
+        c = db.connect()
+        barrier.wait()
+        try:
+            actions.do_done(c, {"task_id": r["task_id"]})
+        finally:
+            c.close()
+
+    workers = [threading.Thread(target=run) for _ in range(2)]
+    for t in workers:
+        t.start()
+    for t in workers:
+        t.join()
+
+    assert len(db.list_active(conn, "end")) == 1
+    total = conn.execute("SELECT COUNT(*) AS n FROM tasks").fetchone()["n"]
+    assert total == 2  # 原 1 条 + 克隆 1 条,不多不少
+
+
 # ---------- 超时即关闭 ----------
 
 def test_close_overdue_closes_expired_end(conn):
     r = actions.do_add(conn, {"title": "过了的活", "drive": "end", "deadline": NOW - 3600})
-    n = actions.close_overdue(conn, now=NOW)
-    assert n == 1
+    closed = actions.close_overdue(conn, now=NOW)
+    assert closed == [r["task_id"]]                          # 返回关闭的 id 列表
     assert db.get_task(conn, r["task_id"])["status"] == "closed"
 
 
@@ -236,7 +271,7 @@ def test_close_overdue_ignores_start(conn):
     r = actions.do_add(conn, {"title": "看发小", "drive": "start",
                                "expected_duration": 30 * DAY, "anchor": NOW - 100 * DAY})
     n = actions.close_overdue(conn, now=NOW)
-    assert n == 0
+    assert n == []
     assert db.get_task(conn, r["task_id"])["status"] == "active"   # start 不会因超时被关
 
 
