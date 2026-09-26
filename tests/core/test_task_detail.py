@@ -35,7 +35,9 @@ def test_detail_start_task(conn):
     assert d["id"] == tid
     assert d["drive"] == "start"
     assert d["tags"] == ["朋友"]
-    assert d["days_since"] == pytest.approx(60.0)
+    # days_since 按查询时刻现算,anchor 取模块导入时的 NOW:全量跑时前面排了
+    # 十几秒的测试,漂移会超过默认相对容差,给固定容差 0.001 天(≈86 秒)
+    assert d["days_since"] == pytest.approx(60.0, abs=1e-3)
     assert d["importance"] > 0
     assert d["expected_days"] == 30.0                       # 秒 -> 天数喂前端
     assert d["anchor"] == to_str(NOW - 60 * DAY)[:10]
