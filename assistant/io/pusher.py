@@ -69,7 +69,11 @@ def tick_push():
     """
     conn = db.connect()
     db.init_db()
-    actions.close_overdue(conn)            # 超时即关闭:过期 end 任务先落 closed
+    closed_ids = actions.close_overdue(conn)   # 超时即关闭:过期 end 任务先落 closed
+    for tid in closed_ids:
+        # 被关的任务不会进 pick,但浮窗上它的旧卡还挂着(卡片只在收到
+        # done/snooze 事件时撤)——补发 closed 事件,让浮窗把残留卡撤下来
+        events.publish("closed", task_id=tid)
     now = _now()
     picked, _blocked = pick(conn, now)
     for task, stage, _nag in picked:

@@ -2,7 +2,7 @@
 /**
  * 通知浮窗页(/notify):pywebview 无框置顶窗,两列布局。
  *
- * 右列「待办」:通知层推来的任务快照(被动接收 /ws 的 notify/done/snooze),
+ * 右列「待办」:通知层推来的任务快照(被动接收 /ws 的 notify/done/snooze/closed),
  *   完成/推迟/留言走 REST,后端广播同步。
  * 左列「AI 助手」:第四层旁观 Agent 的对话记录 + 调用过程。
  *   ai_message 事件(经 /ws)追加 AI 气泡;用户回复走 /api/ai/reply;
@@ -144,7 +144,8 @@ function handle(ev: {
     for (const t of ev.tasks) {
       if (!tasks.value.some((x) => x.id === t.id)) tasks.value.push(t)
     }
-  } else if ((ev.type === 'done' || ev.type === 'snooze') && ev.task_id) {
+  } else if ((ev.type === 'done' || ev.type === 'snooze' || ev.type === 'closed') && ev.task_id) {
+    // closed:任务被跨天自动关闭(close_overdue),残留卡一并撤下,免得误点
     remove(ev.task_id)
   } else if (ev.type === 'ai_message' && ev.text) {
     pushChat('ai', ev.text, ev.ts)

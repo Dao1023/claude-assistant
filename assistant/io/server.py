@@ -109,7 +109,10 @@ def create_app() -> FastAPI:
     def api_tasks():
         conn = queries.db.connect()
         try:
-            actions.close_overdue(conn)          # 超时即关闭:过期 end 任务先落 closed
+            # 超时即关闭:过期 end 任务先落 closed;顺带发事件撤浮窗残留卡
+            # (面板轮询/推送 tick 谁先认领到谁发,原子认领保证不重复)
+            for tid in actions.close_overdue(conn):
+                events.publish("closed", task_id=tid)
             data = queries.dashboard_data(conn)
             data["tags"] = tags_mod.flat(conn)   # [{name, parent}],筛选栏建树
             return data
@@ -340,7 +343,9 @@ def create_app() -> FastAPI:
         from . import pusher
         conn = queries.db.connect()
         try:
-            actions.close_overdue(conn)      # 与真实推送同前置:过期 end 先关闭
+            # 与真实推送同前置:过期 end 先关闭;closed 事件同 api_tasks
+            for tid in actions.close_overdue(conn):
+                events.publish("closed", task_id=tid)
             picked, blocked = pusher.pick(conn)
         finally:
             conn.close()
