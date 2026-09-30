@@ -13,3 +13,4 @@ frontend/dist/
 
 # brainstorming 视觉 companion 过程稿
 .superpowers/
+.dsh-test/

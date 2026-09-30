@@ -27,4 +27,11 @@
 ## 开放问题
 
 - [ ] **全离线兜底**：所有 harness 都不在线时，到点提醒要不要走 OS toast？（几十行代码的事）
-- [ ] **DSH headless 唤醒**：意识层的第一颗钉子——daemon 能否以及如何唤起一个 DSH 会话，动工前实测
+
+## 已验证（2026-10 实测）
+
+- [x] **DSH headless 唤醒**：`dsh headless "任务"` 一次性唤醒（~3s，答案进 stdout）；
+  `--json` 出 sessionId；`--session-id <id>` 跨唤醒续接会话记忆（暗号测试通过）。
+  落地为 `assistant/consciousness.py`（意识层 · DSH 适配器，`DSH_CMD` 环境变量可换 harness）。
+  注意：在 DSH 沙箱会话内测试时孙子进程写 `~/.dsh` 受限，用 `DSH_HOME` 指到工作区绕过；
+  生产环境 daemon 是独立用户进程，无此限制。
