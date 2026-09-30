@@ -193,31 +193,12 @@ JOIN tags g ON g.id = tt.tag_id
 WHERE g.name = 'genshin';   -- 或 != 'genshin' 隐藏
 ```
 
-## 四、模块落位(现状)
+## 四、模块落位(V4.2 说明)
 
-已全部分层落地,依赖单向 `config → core → io → app → main` 无环:
+V2 的 core/io/app 分层与 REST 服务面已随架构翻转退役(git 历史可查)。当前规划:
 
-- `core/db.py` — 建库 + 连接 + 基础 CRUD(6 张表)
-- `core/timeutil.py` — 时间转换中枢:内部 Unix 秒 int ↔ 边界字符串/天数互转
-- `core/actions.py` — 任务动作 add/done/update/close/snooze/query + **close_overdue(超时即关闭)**(纯业务,供 HTTP 与浮窗复用)
-- `core/engine.py` — 重要性引擎:start `log((now-anchor)/expected_duration)`、end `-log(剩余)`,产出两个清单
-- `core/funnel.py` — 通知过滤漏斗:免打扰总闸(dnd_active)+ 纯函数管线(未来周期/推迟/冷却)+ 定档 + 每层元信息;
-  推送(tick_push)与规则页统计(/api/funnel)共用同一条管线,保证展示=真实运行
-- `core/settings.py` — 通知规则配置单一读写口:get/set/all + 元信息 + 缓存(settings 表)
-- `core/queries.py` — 面板数据加工(倒计时/距上次天数/秒→天数/tag)
-- `io/server.py` — FastAPI:查询 + 写接口 + `/api/settings` + `/ws` 事件端点,托管前端构建产物;查询入口跑 close_overdue
-- `io/pusher.py` — 推送生命周期:三档催促 + 节流,挑好后叫浮窗 show + 推 notify 事件上总线,写 push_log(阈值读 settings)
-- `io/events.py` — 事件中枢:跨线程桥(scheduler→uvicorn 循环),把事件广播给所有 /ws 订阅者(浮窗、未来 AI)
-- `io/notify_window.py` — pywebview 无框置顶浮窗(唯一推送出口,常驻单例 show/hide),内容为 /notify 页
-- `io/launcher.py` — 面板服务端口顺延 + 常驻预热 + chrome --app 开面板
-- `app/tray.py` — 系统托盘(打开面板 / 显示待办窗 / 退出;explorer 重启自动重建图标)
-
-> V1 通知通道(inbox.json + watcher + 系统 Toast)已于通知层重构删除;
-> tkinter 小卡(popup.py)已由 pywebview 浮窗取代。
-> 推送唯一通道为 pusher → notify_window 浮窗(/notify 页),事件经 events 总线广播。
-
-前端面板为独立 Vue3 工程(`frontend/`,Vite + Element Plus + Tailwind),经 `/api` 与本服务交互。
-顶部 Tab 切换「任务看板 / 通知规则」。规则页是**漏斗视图**:任务从上往下流过
-「未来周期 → 推迟中 → 冷却中 → 限量 → 定档位」各层,每层显示人话说明、此刻挡掉了
-几个任务(实时,GET /api/funnel)、可展开看具体任务;配置项嵌在各自起作用的层上。
+- **表结构与动作语义(上表)全部存活**——它们是"档案"的规范,与外壳无关
+- 读写外壳 = dsh-task-brain 插件(会话内原生工具,execute 接 SQLite + actions 校验),规划见 [community-survey.md](community-survey.md) 阶段 3
+- 写入路径继续过 `core/actions.py` 的业务校验(AI 不裸写库的原则从 V2 继承)
+- `/docs` Swagger 等旧 REST 面板接口随旧服务退役;前端面板 V4.2 起不再维护
 

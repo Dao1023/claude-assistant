@@ -1,380 +1,360 @@
 {
   "type": "excalidraw",
   "version": 2,
-  "source": "claude-assistant V4.1",
+  "source": "claude-assistant V4.2",
   "elements": [
     {
-      "id": "t_title", "type": "text", "x": 40, "y": 16, "width": 780, "height": 25, "angle": 0,
+      "id": "t_title", "type": "text", "x": 40, "y": 16, "width": 900, "height": 25, "angle": 0,
       "strokeColor": "#333333", "backgroundColor": "transparent", "fillStyle": "solid",
       "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800001, "version": 1, "versionNonce": 900001,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900001, "version": 1, "versionNonce": 1000001,
       "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "数字生命 · V4.1 组成架构（节律四态独立于图外，见 rhythm.md）", "originalText": "数字生命 · V4.1 组成架构（节律四态独立于图外，见 rhythm.md）",
+      "text": "数字生命 · V4.2 组成架构:社区组装 + 唯一自建插件(选型依据见 community-survey.md)", "originalText": "数字生命 · V4.2 组成架构:社区组装 + 唯一自建插件(选型依据见 community-survey.md)",
       "fontSize": 20, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 18
     },
 
     {
-      "id": "u1", "type": "ellipse", "x": 480, "y": 20, "width": 160, "height": 56, "angle": 0,
+      "id": "u1", "type": "ellipse", "x": 560, "y": 20, "width": 160, "height": 56, "angle": 0,
       "strokeColor": "#444444", "backgroundColor": "#ffffff", "fillStyle": "solid",
       "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800002, "version": 1, "versionNonce": 900002,
-      "isDeleted": false, "boundElements": [{ "id": "tx_u1", "type": "text" }, { "id": "a_user_io", "type": "arrow" }], "updated": 1735000000000,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 900002, "version": 1, "versionNonce": 1000002,
+      "isDeleted": false, "boundElements": [{ "id": "tx_u1", "type": "text" }, { "id": "a_user_session", "type": "arrow" }], "updated": 1735000000000,
       "link": null, "locked": false
     },
     {
-      "id": "tx_u1", "type": "text", "x": 520, "y": 36, "width": 80, "height": 25, "angle": 0,
+      "id": "tx_u1", "type": "text", "x": 600, "y": 36, "width": 80, "height": 25, "angle": 0,
       "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
       "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800003, "version": 1, "versionNonce": 900003,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900003, "version": 1, "versionNonce": 1000003,
       "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "👤 用户", "originalText": "👤 用户", "fontSize": 20, "fontFamily": 2,
-      "textAlign": "center", "verticalAlign": "middle", "containerId": "u1", "lineHeight": 1.25, "baseline": 18
+      "text": "👤 用户(主人)", "originalText": "👤 用户(主人)", "fontSize": 18, "fontFamily": 2,
+      "textAlign": "center", "verticalAlign": "middle", "containerId": "u1", "lineHeight": 1.25, "baseline": 16
     },
 
     {
-      "id": "zagent", "type": "rectangle", "x": 300, "y": 110, "width": 780, "height": 360, "angle": 0,
-      "strokeColor": "#2e9e44", "backgroundColor": "#f4fcf6", "fillStyle": "solid",
-      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800004, "version": 1, "versionNonce": 900004,
+      "id": "zlegend", "type": "rectangle", "x": 40, "y": 140, "width": 200, "height": 150, "angle": 0,
+      "strokeColor": "#dddddd", "backgroundColor": "#ffffff", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 900004, "version": 1, "versionNonce": 1000004,
       "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false
     },
     {
-      "id": "t_agent", "type": "text", "x": 316, "y": 118, "width": 700, "height": 25, "angle": 0,
-      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "id": "t_legend", "type": "text", "x": 52, "y": 150, "width": 180, "height": 130, "angle": 0,
+      "strokeColor": "#333333", "backgroundColor": "transparent", "fillStyle": "solid",
       "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800005, "version": 1, "versionNonce": 900005,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900005, "version": 1, "versionNonce": 1000005,
       "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "Agent · 大脑 🟢（跑在 harness：DSH 首选，可换/多个）", "originalText": "Agent · 大脑 🟢（跑在 harness：DSH 首选，可换/多个）",
-      "fontSize": 20, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 18
+      "text": "图例\n🔵 社区插件(组装)\n🟢 自建(会话侧)\n⭐ 核心IP(自建)\n🟠 退役\n灰容器=宿主", "originalText": "图例\n🔵 社区插件(组装)\n🟢 自建(会话侧)\n⭐ 核心IP(自建)\n🟠 退役\n灰容器=宿主",
+      "fontSize": 14, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.35, "baseline": 12
     },
 
     {
-      "id": "io", "type": "rectangle", "x": 330, "y": 150, "width": 220, "height": 80, "angle": 0,
-      "strokeColor": "#8a8a8a", "backgroundColor": "#ffffff", "fillStyle": "solid",
-      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800006, "version": 1, "versionNonce": 900006,
-      "isDeleted": false, "boundElements": [{ "id": "tx_io", "type": "text" }, { "id": "a_user_io", "type": "arrow" }], "updated": 1735000000000, "link": null, "locked": false
-    },
-    {
-      "id": "tx_io", "type": "text", "x": 338, "y": 162, "width": 204, "height": 56, "angle": 0,
-      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800007, "version": 1, "versionNonce": 900007,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "交互 ⚪ harness 提供\nGUI / CLI / …\n主动找用户交流", "originalText": "交互 ⚪ harness 提供\nGUI / CLI / …\n主动找用户交流",
-      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "io", "lineHeight": 1.25, "baseline": 12
-    },
-
-    {
-      "id": "skill", "type": "rectangle", "x": 580, "y": 150, "width": 220, "height": 80, "angle": 0,
-      "strokeColor": "#2e9e44", "backgroundColor": "#d4fcdc", "fillStyle": "solid",
-      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800008, "version": 1, "versionNonce": 900008,
-      "isDeleted": false, "boundElements": [
-        { "id": "tx_skill", "type": "text" },
-        { "id": "a_yi_skill", "type": "arrow" },
-        { "id": "a_skill_yi", "type": "arrow" }
-      ], "updated": 1735000000000, "link": null, "locked": false
-    },
-    {
-      "id": "tx_skill", "type": "text", "x": 588, "y": 162, "width": 204, "height": 56, "angle": 0,
-      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800009, "version": 1, "versionNonce": 900009,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "skill 🟢 task-brain\n基本交互方法（默认加载）\n对接 daemon 的唯一入口", "originalText": "skill 🟢 task-brain\n基本交互方法（默认加载）\n对接 daemon 的唯一入口",
-      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "skill", "lineHeight": 1.25, "baseline": 12
-    },
-
-    {
-      "id": "plugins", "type": "rectangle", "x": 330, "y": 250, "width": 200, "height": 90, "angle": 0,
-      "strokeColor": "#2e9e44", "backgroundColor": "#d4fcdc", "fillStyle": "solid",
-      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800010, "version": 1, "versionNonce": 900010,
-      "isDeleted": false, "boundElements": [{ "id": "tx_plugins", "type": "text" }], "updated": 1735000000000, "link": null, "locked": false
-    },
-    {
-      "id": "tx_plugins", "type": "text", "x": 338, "y": 266, "width": 184, "height": 56, "angle": 0,
-      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800011, "version": 1, "versionNonce": 900011,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "插件 / MCP 🟢\n看 harness 生态\n（记忆插件等）", "originalText": "插件 / MCP 🟢\n看 harness 生态\n（记忆插件等）",
-      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "plugins", "lineHeight": 1.25, "baseline": 12
-    },
-
-    {
-      "id": "ctxmem", "type": "rectangle", "x": 850, "y": 150, "width": 200, "height": 90, "angle": 0,
-      "strokeColor": "#8a8a8a", "backgroundColor": "#ffffff", "fillStyle": "solid",
-      "strokeWidth": 1.5, "strokeStyle": "dashed", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800012, "version": 1, "versionNonce": 900012,
-      "isDeleted": false, "boundElements": [{ "id": "tx_ctxmem", "type": "text" }], "updated": 1735000000000, "link": null, "locked": false
-    },
-    {
-      "id": "tx_ctxmem", "type": "text", "x": 858, "y": 166, "width": 184, "height": 56, "angle": 0,
-      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800013, "version": 1, "versionNonce": 900013,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "上下文记忆\n（单会话）\nharness 管理 · 与本软件无关", "originalText": "上下文记忆\n（单会话）\nharness 管理 · 与本软件无关",
-      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "ctxmem", "lineHeight": 1.25, "baseline": 12
-    },
-
-    {
-      "id": "xmem", "type": "rectangle", "x": 850, "y": 260, "width": 200, "height": 90, "angle": 0,
-      "strokeColor": "#8a8a8a", "backgroundColor": "#ffffff", "fillStyle": "solid",
-      "strokeWidth": 1.5, "strokeStyle": "dashed", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800014, "version": 1, "versionNonce": 900014,
-      "isDeleted": false, "boundElements": [{ "id": "tx_xmem", "type": "text" }], "updated": 1735000000000, "link": null, "locked": false
-    },
-    {
-      "id": "tx_xmem", "type": "text", "x": 858, "y": 276, "width": 184, "height": 56, "angle": 0,
-      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800015, "version": 1, "versionNonce": 900015,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "跨会话记忆\n推荐安装相关插件\n与本软件无关", "originalText": "跨会话记忆\n推荐安装相关插件\n与本软件无关",
-      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "xmem", "lineHeight": 1.25, "baseline": 12
-    },
-
-    {
-      "id": "zdaemon", "type": "rectangle", "x": 300, "y": 500, "width": 780, "height": 330, "angle": 0,
+      "id": "zhost", "type": "rectangle", "x": 260, "y": 110, "width": 880, "height": 620, "angle": 0,
       "strokeColor": "#999999", "backgroundColor": "#f7f7f7", "fillStyle": "solid",
       "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800016, "version": 1, "versionNonce": 900016,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 900006, "version": 1, "versionNonce": 1000006,
       "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false
     },
     {
-      "id": "t_daemon", "type": "text", "x": 316, "y": 508, "width": 740, "height": 25, "angle": 0,
+      "id": "t_host", "type": "text", "x": 276, "y": 118, "width": 850, "height": 25, "angle": 0,
       "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
       "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800017, "version": 1, "versionNonce": 900017,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900007, "version": 1, "versionNonce": 1000007,
       "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "daemon · 永续进程 ⚪（复用原①事件层；②通知层 ③浮窗退役 🔴）", "originalText": "daemon · 永续进程 ⚪（复用原①事件层；②通知层 ③浮窗退役 🔴）",
+      "text": "🖥 dsh-desktop · 常驻托盘(7×24 守夜)🔵 —— 接管旧 daemon 的守夜职能", "originalText": "🖥 dsh-desktop · 常驻托盘(7×24 守夜)🔵 —— 接管旧 daemon 的守夜职能",
       "fontSize": 20, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 18
     },
 
     {
-      "id": "yishi", "type": "rectangle", "x": 330, "y": 540, "width": 570, "height": 60, "angle": 0,
+      "id": "cron", "type": "rectangle", "x": 290, "y": 170, "width": 190, "height": 90, "angle": 0,
       "strokeColor": "#3a7bd5", "backgroundColor": "#d9e9ff", "fillStyle": "solid",
       "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800018, "version": 1, "versionNonce": 900018,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 900008, "version": 1, "versionNonce": 1000008,
+      "isDeleted": false, "boundElements": [{ "id": "tx_cron", "type": "text" }, { "id": "a_cron_session", "type": "arrow" }], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_cron", "type": "text", "x": 296, "y": 184, "width": 178, "height": 62, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900009, "version": 1, "versionNonce": 1000009,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "dsh-cron 🔵(闹钟)\ncron/at · coldWake\n冷唤醒持久会话\n错过自动合并", "originalText": "dsh-cron 🔵(闹钟)\ncron/at · coldWake\n冷唤醒持久会话\n错过自动合并",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "cron", "lineHeight": 1.25, "baseline": 11
+    },
+
+    {
+      "id": "session", "type": "rectangle", "x": 540, "y": 150, "width": 260, "height": 110, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "#d4fcdc", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 900010, "version": 1, "versionNonce": 100010,
       "isDeleted": false, "boundElements": [
-        { "id": "tx_yishi", "type": "text" },
-        { "id": "a_yi_skill", "type": "arrow" },
-        { "id": "a_skill_yi", "type": "arrow" },
-        { "id": "a_t0_yi", "type": "arrow" },
-        { "id": "a_tc_yi", "type": "arrow" },
-        { "id": "a_yi_db", "type": "arrow" }
+        { "id": "tx_session", "type": "text" },
+        { "id": "a_user_session", "type": "arrow" },
+        { "id": "a_cron_session", "type": "arrow" },
+        { "id": "a_session_skill", "type": "arrow" },
+        { "id": "a_session_mnemon", "type": "arrow" },
+        { "id": "a_session_im", "type": "arrow" }
       ], "updated": 1735000000000, "link": null, "locked": false
     },
     {
-      "id": "tx_yishi", "type": "text", "x": 340, "y": 552, "width": 550, "height": 38, "angle": 0,
+      "id": "tx_session", "type": "text", "x": 548, "y": 166, "width": 244, "height": 78, "angle": 0,
       "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
       "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800019, "version": 1, "versionNonce": 900019,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900011, "version": 1, "versionNonce": 100011,
       "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "意识层 🔵 对接具体 harness · 可唤醒多个（daemon 不认识任何 harness）", "originalText": "意识层 🔵 对接具体 harness · 可唤醒多个（daemon 不认识任何 harness）",
-      "fontSize": 15, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "yishi", "lineHeight": 1.25, "baseline": 13
+      "text": "女仆常驻会话 🟢\n绑定微信聊天(一个聊天=一个会话)\n人格连续·醒后读字条\n→判定→说话→重排闹钟", "originalText": "女仆常驻会话 🟢\n绑定微信聊天(一个聊天=一个会话)\n人格连续·醒后读字条\n→判定→说话→重排闹钟",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "session", "lineHeight": 1.25, "baseline": 11
     },
 
     {
-      "id": "heartbeat", "type": "rectangle", "x": 930, "y": 540, "width": 140, "height": 60, "angle": 0,
-      "strokeColor": "#8a8a8a", "backgroundColor": "#ececec", "fillStyle": "solid",
+      "id": "mnemon", "type": "rectangle", "x": 840, "y": 150, "width": 200, "height": 110, "angle": 0,
+      "strokeColor": "#3a7bd5", "backgroundColor": "#d9e9ff", "fillStyle": "solid",
       "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800020, "version": 1, "versionNonce": 900020,
-      "isDeleted": false, "boundElements": [{ "id": "tx_heartbeat", "type": "text" }], "updated": 1735000000000, "link": null, "locked": false
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 900012, "version": 1, "versionNonce": 100012,
+      "isDeleted": false, "boundElements": [{ "id": "tx_mnemon", "type": "text" }, { "id": "a_session_mnemon", "type": "arrow" }], "updated": 1735000000000, "link": null, "locked": false
     },
     {
-      "id": "tx_heartbeat", "type": "text", "x": 936, "y": 556, "width": 128, "height": 25, "angle": 0,
+      "id": "tx_mnemon", "type": "text", "x": 846, "y": 168, "width": 188, "height": 74, "angle": 0,
       "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
       "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800021, "version": 1, "versionNonce": 900021,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900013, "version": 1, "versionNonce": 100013,
       "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "心跳 ⚪\n基本运行信号", "originalText": "心跳 ⚪\n基本运行信号",
-      "fontSize": 13, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "heartbeat", "lineHeight": 1.25, "baseline": 11
+      "text": "dsh-mnemon 🔵(记忆)\n三层记忆·画像每回合注入\nprovider桥接档案", "originalText": "dsh-mnemon 🔵(记忆)\n三层记忆·画像每回合注入\nprovider桥接档案",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "mnemon", "lineHeight": 1.25, "baseline": 11
     },
 
     {
-      "id": "ztimer", "type": "rectangle", "x": 330, "y": 620, "width": 440, "height": 185, "angle": 0,
-      "strokeColor": "#8a8a8a66", "backgroundColor": "#f0f0f0", "fillStyle": "solid",
-      "strokeWidth": 1.5, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800022, "version": 1, "versionNonce": 900022,
+      "id": "skill", "type": "rectangle", "x": 540, "y": 290, "width": 260, "height": 100, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "#d4fcdc", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 900014, "version": 1, "versionNonce": 100014,
+      "isDeleted": false, "boundElements": [
+        { "id": "tx_skill", "type": "text" },
+        { "id": "a_session_skill", "type": "arrow" },
+        { "id": "a_skill_plugin", "type": "arrow" }
+      ], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_skill", "type": "text", "x": 548, "y": 306, "width": 244, "height": 68, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900015, "version": 1, "versionNonce": 100015,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "task-brain skill 🟢(灵魂)\n判定协议·人设·字条\n「闹钟就是闹钟,\n女仆才是决策者」", "originalText": "task-brain skill 🟢(灵魂)\n判定协议·人设·字条\n「闹钟就是闹钟,\n女仆才是决策者」",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "skill", "lineHeight": 1.25, "baseline": 11
+    },
+
+    {
+      "id": "plugin", "type": "rectangle", "x": 290, "y": 300, "width": 190, "height": 120, "angle": 0,
+      "strokeColor": "#c9a227", "backgroundColor": "#fff3c4", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 900016, "version": 1, "versionNonce": 100016,
+      "isDeleted": false, "boundElements": [
+        { "id": "tx_plugin", "type": "text" },
+        { "id": "a_skill_plugin", "type": "arrow" },
+        { "id": "a_plugin_archive", "type": "arrow" }
+      ], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_plugin", "type": "text", "x": 296, "y": 316, "width": 178, "height": 88, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900017, "version": 1, "versionNonce": 100017,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "dsh-task-brain ⭐\n唯一自建插件\ntask_query / task_update\n/ alarm_reschedule\n(写入过校验)", "originalText": "dsh-task-brain ⭐\n唯一自建插件\ntask_query / task_update\n/ alarm_reschedule\n(写入过校验)",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "plugin", "lineHeight": 1.25, "baseline": 11
+    },
+
+    {
+      "id": "archive", "type": "rectangle", "x": 290, "y": 470, "width": 190, "height": 110, "angle": 0,
+      "strokeColor": "#c9a227", "backgroundColor": "#fff3c4", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 900018, "version": 1, "versionNonce": 100018,
+      "isDeleted": false, "boundElements": [{ "id": "tx_archive", "type": "text" }, { "id": "a_plugin_archive", "type": "arrow" }], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_archive", "type": "text", "x": 296, "y": 486, "width": 178, "height": 78, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900019, "version": 1, "versionNonce": 100019,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "SQLite 双驱动档案 ⭐\n核心IP(社区零覆盖)\nstart: log(间隔/周期)\nend: -log(剩余)·周期克隆", "originalText": "SQLite 双驱动档案 ⭐\n核心IP(社区零覆盖)\nstart: log(间隔/周期)\nend: -log(剩余)·周期克隆",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "archive", "lineHeight": 1.25, "baseline": 11
+    },
+
+    {
+      "id": "dim", "type": "rectangle", "x": 840, "y": 300, "width": 200, "height": 100, "angle": 0,
+      "strokeColor": "#3a7bd5", "backgroundColor": "#d9e9ff", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 900020, "version": 1, "versionNonce": 100020,
+      "isDeleted": false, "boundElements": [{ "id": "tx_dim", "type": "text" }, { "id": "a_session_im", "type": "arrow" }], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_dim", "type": "text", "x": 846, "y": 318, "width": 188, "height": 64, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900021, "version": 1, "versionNonce": 100021,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "dsh-im 🔵(触达)\n微信/飞书等9渠道\n用户手机双向聊天窗", "originalText": "dsh-im 🔵(触达)\n微信/飞书等9渠道\n用户手机双向聊天窗",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "dim", "lineHeight": 1.25, "baseline": 11
+    },
+
+    {
+      "id": "bark", "type": "rectangle", "x": 840, "y": 440, "width": 200, "height": 70, "angle": 0,
+      "strokeColor": "#3a7bd5", "backgroundColor": "#d9e9ff", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 900022, "version": 1, "versionNonce": 100022,
+      "isDeleted": false, "boundElements": [{ "id": "tx_bark", "type": "text" }], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_bark", "type": "text", "x": 846, "y": 456, "width": 188, "height": 38, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900023, "version": 1, "versionNonce": 100023,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "Bark 🔵(保底)\n手机锁屏推送", "originalText": "Bark 🔵(保底)\n手机锁屏推送",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "bark", "lineHeight": 1.25, "baseline": 11
+    },
+
+    {
+      "id": "note", "type": "rectangle", "x": 540, "y": 440, "width": 260, "height": 100, "angle": 0,
+      "strokeColor": "#e0691e", "backgroundColor": "#ffe0cc", "fillStyle": "solid",
+      "strokeWidth": 1.5, "strokeStyle": "dashed", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 900024, "version": 1, "versionNonce": 100024,
       "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false
     },
     {
-      "id": "t_ztimer", "type": "text", "x": 342, "y": 626, "width": 300, "height": 20, "angle": 0,
-      "strokeColor": "#8a8a8a", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800023, "version": 1, "versionNonce": 900023,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "计时器（冲突自解：合并/去抖）", "originalText": "计时器（冲突自解：合并/去抖）",
-      "fontSize": 14, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 12
-    },
-
-    {
-      "id": "timer0", "type": "rectangle", "x": 345, "y": 655, "width": 190, "height": 125, "angle": 0,
-      "strokeColor": "#8a8a8a", "backgroundColor": "#ececec", "fillStyle": "solid",
-      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800024, "version": 1, "versionNonce": 900024,
-      "isDeleted": false, "boundElements": [{ "id": "tx_timer0", "type": "text" }, { "id": "a_t0_yi", "type": "arrow" }], "updated": 1735000000000, "link": null, "locked": false
-    },
-    {
-      "id": "tx_timer0", "type": "text", "x": 351, "y": 675, "width": 178, "height": 84, "angle": 0,
+      "id": "t_note", "type": "text", "x": 552, "y": 454, "width": 236, "height": 74, "angle": 0,
       "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
       "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800025, "version": 1, "versionNonce": 900025,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900025, "version": 1, "versionNonce": 100025,
       "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "本体计时器 ⚪\n不可关闭\n每10min唤醒\n（待机模式用）", "originalText": "本体计时器 ⚪\n不可关闭\n每10min唤醒\n（待机模式用）",
-      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "timer0", "lineHeight": 1.25, "baseline": 12
+      "text": "旧 daemon 🟠退役\n(timers.py / consciousness.py)\n→ 实验资产 · DSH 下线窗口期\n的离线兜底(是否保留待定)", "originalText": "旧 daemon 🟠退役\n(timers.py / consciousness.py)\n→ 实验资产 · DSH 下线窗口期\n的离线兜底(是否保留待定)",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.3, "baseline": 11
     },
 
     {
-      "id": "timerc", "type": "rectangle", "x": 555, "y": 655, "width": 200, "height": 125, "angle": 0,
-      "strokeColor": "#2e9e44", "backgroundColor": "#d4fcdc", "fillStyle": "solid",
-      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800026, "version": 1, "versionNonce": 900026,
-      "isDeleted": false, "boundElements": [{ "id": "tx_timerc", "type": "text" }, { "id": "a_tc_yi", "type": "arrow" }], "updated": 1735000000000, "link": null, "locked": false
-    },
-    {
-      "id": "tx_timerc", "type": "text", "x": 561, "y": 675, "width": 188, "height": 84, "angle": 0,
-      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800027, "version": 1, "versionNonce": 900027,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "自定义计时器 🟢\n大脑设置·唤醒自己\n周期/一次性/跳跃\n代码直跑·个性化", "originalText": "自定义计时器 🟢\n大脑设置·唤醒自己\n周期/一次性/跳跃\n代码直跑·个性化",
-      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "timerc", "lineHeight": 1.25, "baseline": 12
-    },
-
-    {
-      "id": "backend", "type": "rectangle", "x": 800, "y": 620, "width": 270, "height": 185, "angle": 0,
-      "strokeColor": "#8a8a8a", "backgroundColor": "#ececec", "fillStyle": "solid",
-      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800028, "version": 1, "versionNonce": 900028,
-      "isDeleted": false, "boundElements": [{ "id": "tx_backend", "type": "text" }, { "id": "a_yi_db", "type": "arrow" }], "updated": 1735000000000, "link": null, "locked": false
-    },
-    {
-      "id": "tx_backend", "type": "text", "x": 808, "y": 648, "width": 254, "height": 130, "angle": 0,
-      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800029, "version": 1, "versionNonce": 900029,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "数据后端 ⚪\nSQLite 档案 + 配套后端\n复用原①事件层\n（写入过校验，\nAI 不裸写库）", "originalText": "数据后端 ⚪\nSQLite 档案 + 配套后端\n复用原①事件层\n（写入过校验，\nAI 不裸写库）",
-      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "backend", "lineHeight": 1.25, "baseline": 12
-    },
-
-    {
-      "id": "a_user_io", "type": "arrow", "x": 552, "y": 50, "width": -96, "height": 96, "angle": 0,
+      "id": "a_user_session", "type": "arrow", "x": 648, "y": 78, "width": 20, "height": 68, "angle": 0,
       "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
       "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800030, "version": 1, "versionNonce": 900030,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 900026, "version": 1, "versionNonce": 100026,
       "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "points": [[0, 0], [-96, 96]], "lastCommittedPoint": null, "startBinding": { "elementId": "u1", "focus": 0, "gap": 6 }, "endBinding": { "elementId": "io", "focus": -0.4, "gap": 6 },
-      "startArrowhead": null, "endArrowhead": "arrow", "elbowed": false
-    },
-    {
-      "id": "l_user_io", "type": "text", "x": 560, "y": 88, "width": 130, "height": 18, "angle": 0,
-      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800031, "version": 1, "versionNonce": 900031,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "对话 / 主动交流", "originalText": "对话 / 主动交流",
-      "fontSize": 13, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 11
-    },
-
-    {
-      "id": "a_t0_yi", "type": "arrow", "x": 440, "y": 653, "width": 0, "height": -49, "angle": 0,
-      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800032, "version": 1, "versionNonce": 900032,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "points": [[0, 0], [0, -49]], "lastCommittedPoint": null, "startBinding": { "elementId": "timer0", "focus": 0.4, "gap": 4 }, "endBinding": { "elementId": "yishi", "focus": 0.5, "gap": 4 },
-      "startArrowhead": null, "endArrowhead": "arrow", "elbowed": false
-    },
-    {
-      "id": "l_t0_yi", "type": "text", "x": 448, "y": 622, "width": 90, "height": 18, "angle": 0,
-      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800033, "version": 1, "versionNonce": 900033,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "每10min唤醒", "originalText": "每10min唤醒",
-      "fontSize": 13, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 11
-    },
-
-    {
-      "id": "a_tc_yi", "type": "arrow", "x": 655, "y": 653, "width": 0, "height": -49, "angle": 0,
-      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800034, "version": 1, "versionNonce": 900034,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "points": [[0, 0], [0, -49]], "lastCommittedPoint": null, "startBinding": { "elementId": "timerc", "focus": 0.4, "gap": 4 }, "endBinding": { "elementId": "yishi", "focus": -0.2, "gap": 4 },
-      "startArrowhead": null, "endArrowhead": "arrow", "elbowed": false
-    },
-    {
-      "id": "l_tc_yi", "type": "text", "x": 663, "y": 622, "width": 100, "height": 18, "angle": 0,
-      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800035, "version": 1, "versionNonce": 900035,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "到点唤醒/提醒", "originalText": "到点唤醒/提醒",
-      "fontSize": 13, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 11
-    },
-
-    {
-      "id": "a_yi_skill", "type": "arrow", "x": 620, "y": 538, "width": 35, "height": -300, "angle": 0,
-      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800036, "version": 1, "versionNonce": 900036,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "points": [[0, 0], [35, -300]], "lastCommittedPoint": null, "startBinding": { "elementId": "yishi", "focus": 0.2, "gap": 5 }, "endBinding": { "elementId": "skill", "focus": -0.7, "gap": 5 },
-      "startArrowhead": null, "endArrowhead": "arrow", "elbowed": false
-    },
-    {
-      "id": "l_yi_skill", "type": "text", "x": 500, "y": 380, "width": 150, "height": 18, "angle": 0,
-      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800037, "version": 1, "versionNonce": 900037,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "唤醒（事件+上下文）", "originalText": "唤醒（事件+上下文）",
-      "fontSize": 13, "fontFamily": 2, "textAlign": "right", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 11
-    },
-
-    {
-      "id": "a_skill_yi", "type": "arrow", "x": 760, "y": 234, "width": -20, "height": 302, "angle": 0,
-      "strokeColor": "#3a7bd5", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800038, "version": 1, "versionNonce": 900038,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "points": [[0, 0], [-20, 302]], "lastCommittedPoint": null, "startBinding": { "elementId": "skill", "focus": 0.7, "gap": 5 }, "endBinding": { "elementId": "yishi", "focus": -0.5, "gap": 5 },
-      "startArrowhead": null, "endArrowhead": "arrow", "elbowed": false
-    },
-    {
-      "id": "l_skill_yi", "type": "text", "x": 770, "y": 380, "width": 150, "height": 18, "angle": 0,
-      "strokeColor": "#3a7bd5", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800039, "version": 1, "versionNonce": 900039,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "命令 · 读写 · 设计时器", "originalText": "命令 · 读写 · 设计时器",
-      "fontSize": 13, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 11
-    },
-
-    {
-      "id": "a_yi_db", "type": "arrow", "x": 902, "y": 572, "width": 40, "height": 44, "angle": 0,
-      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
-      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800040, "version": 1, "versionNonce": 900040,
-      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "points": [[0, 0], [40, 44]], "lastCommittedPoint": null, "startBinding": { "elementId": "yishi", "focus": 0.6, "gap": 5 }, "endBinding": { "elementId": "backend", "focus": -0.6, "gap": 5 },
+      "points": [[0, 0], [20, 68]], "lastCommittedPoint": null, "startBinding": { "elementId": "u1", "focus": 0.2, "gap": 6 }, "endBinding": { "elementId": "session", "focus": -0.6, "gap": 6 },
       "startArrowhead": "arrow", "endArrowhead": "arrow", "elbowed": false
     },
     {
-      "id": "l_yi_db", "type": "text", "x": 912, "y": 590, "width": 80, "height": 18, "angle": 0,
+      "id": "l_user_session", "type": "text", "x": 676, "y": 96, "width": 110, "height": 18, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900027, "version": 1, "versionNonce": 100027,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "GUI 对话", "originalText": "GUI 对话",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 11
+    },
+
+    {
+      "id": "a_cron_session", "type": "arrow", "x": 482, "y": 215, "width": 54, "height": 0, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 900028, "version": 1, "versionNonce": 100028,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "points": [[0, 0], [54, 0]], "lastCommittedPoint": null, "startBinding": { "elementId": "cron", "focus": 0, "gap": 5 }, "endBinding": { "elementId": "session", "focus": -0.5, "gap": 5 },
+      "startArrowhead": null, "endArrowhead": "arrow", "elbowed": false
+    },
+    {
+      "id": "l_cron_session", "type": "text", "x": 482, "y": 190, "width": 60, "height": 18, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900029, "version": 1, "versionNonce": 100029,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "coldWake", "originalText": "coldWake",
+      "fontSize": 12, "fontFamily": 2, "textAlign": "center", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 10
+    },
+
+    {
+      "id": "a_session_skill", "type": "arrow", "x": 670, "y": 262, "width": 0, "height": 26, "angle": 0,
+      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 900030, "version": 1, "versionNonce": 100030,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "points": [[0, 0], [0, 26]], "lastCommittedPoint": null, "startBinding": { "elementId": "session", "focus": 0, "gap": 4 }, "endBinding": { "elementId": "skill", "focus": 0, "gap": 4 },
+      "startArrowhead": "arrow", "endArrowhead": "arrow", "elbowed": false
+    },
+
+    {
+      "id": "a_skill_plugin", "type": "arrow", "x": 536, "y": 345, "width": -54, "height": 8, "angle": 0,
+      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 900031, "version": 1, "versionNonce": 100031,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "points": [[0, 0], [-54, 8]], "lastCommittedPoint": null, "startBinding": { "elementId": "skill", "focus": 0.3, "gap": 5 }, "endBinding": { "elementId": "plugin", "focus": -0.3, "gap": 5 },
+      "startArrowhead": "arrow", "endArrowhead": "arrow", "elbowed": false
+    },
+    {
+      "id": "l_skill_plugin", "type": "text", "x": 470, "y": 320, "width": 90, "height": 18, "angle": 0,
       "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
       "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
-      "groupIds": [], "frameId": null, "roundness": null, "seed": 800041, "version": 1, "versionNonce": 900041,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900032, "version": 1, "versionNonce": 100032,
       "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
-      "text": "档案读写", "originalText": "档案读写",
-      "fontSize": 13, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 11
+      "text": "原生工具调用", "originalText": "原生工具调用",
+      "fontSize": 12, "fontFamily": 2, "textAlign": "center", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 10
+    },
+
+    {
+      "id": "a_plugin_archive", "type": "arrow", "x": 385, "y": 422, "width": 0, "height": 46, "angle": 0,
+      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 900033, "version": 1, "versionNonce": 100033,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "points": [[0, 0], [0, 46]], "lastCommittedPoint": null, "startBinding": { "elementId": "plugin", "focus": 0, "gap": 4 }, "endBinding": { "elementId": "archive", "focus": 0, "gap": 4 },
+      "startArrowhead": "arrow", "endArrowhead": "arrow", "elbowed": false
+    },
+    {
+      "id": "l_plugin_archive", "type": "text", "x": 393, "y": 436, "width": 100, "height": 18, "angle": 0,
+      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900034, "version": 1, "versionNonce": 100034,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "读写·过校验", "originalText": "读写·过校验",
+      "fontSize": 12, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 10
+    },
+
+    {
+      "id": "a_session_mnemon", "type": "arrow", "x": 802, "y": 205, "width": 36, "height": 0, "angle": 0,
+      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 900035, "version": 1, "versionNonce": 100035,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "points": [[0, 0], [36, 0]], "lastCommittedPoint": null, "startBinding": { "elementId": "session", "focus": 0.4, "gap": 4 }, "endBinding": { "elementId": "mnemon", "focus": -0.4, "gap": 4 },
+      "startArrowhead": "arrow", "endArrowhead": "arrow", "elbowed": false
+    },
+    {
+      "id": "l_session_mnemon", "type": "text", "x": 798, "y": 182, "width": 50, "height": 18, "angle": 0,
+      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900036, "version": 1, "versionNonce": 100036,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "注入", "originalText": "注入",
+      "fontSize": 12, "fontFamily": 2, "textAlign": "center", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 10
+    },
+
+    {
+      "id": "a_session_im", "type": "arrow", "x": 804, "y": 243, "width": 34, "height": 102, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 900037, "version": 1, "versionNonce": 100037,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "points": [[0, 0], [34, 102]], "lastCommittedPoint": null, "startBinding": { "elementId": "session", "focus": -0.6, "gap": 5 }, "endBinding": { "elementId": "dim", "focus": -0.6, "gap": 5 },
+      "startArrowhead": "arrow", "endArrowhead": "arrow", "elbowed": false
+    },
+    {
+      "id": "l_session_im", "type": "text", "x": 770, "y": 270, "width": 60, "height": 18, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 900038, "version": 1, "versionNonce": 100038,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "微信双向", "originalText": "微信双向",
+      "fontSize": 12, "fontFamily": 2, "textAlign": "right", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 10
     }
   ],
   "appState": { "viewBackgroundColor": "#ffffff", "gridSize": null },
