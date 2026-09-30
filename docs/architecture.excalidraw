@@ -1,0 +1,382 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "claude-assistant V4.1",
+  "elements": [
+    {
+      "id": "t_title", "type": "text", "x": 40, "y": 16, "width": 780, "height": 25, "angle": 0,
+      "strokeColor": "#333333", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800001, "version": 1, "versionNonce": 900001,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "数字生命 · V4.1 组成架构（节律四态独立于图外，见 rhythm.md）", "originalText": "数字生命 · V4.1 组成架构（节律四态独立于图外，见 rhythm.md）",
+      "fontSize": 20, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 18
+    },
+
+    {
+      "id": "u1", "type": "ellipse", "x": 480, "y": 20, "width": 160, "height": 56, "angle": 0,
+      "strokeColor": "#444444", "backgroundColor": "#ffffff", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800002, "version": 1, "versionNonce": 900002,
+      "isDeleted": false, "boundElements": [{ "id": "tx_u1", "type": "text" }, { "id": "a_user_io", "type": "arrow" }], "updated": 1735000000000,
+      "link": null, "locked": false
+    },
+    {
+      "id": "tx_u1", "type": "text", "x": 520, "y": 36, "width": 80, "height": 25, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800003, "version": 1, "versionNonce": 900003,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "👤 用户", "originalText": "👤 用户", "fontSize": 20, "fontFamily": 2,
+      "textAlign": "center", "verticalAlign": "middle", "containerId": "u1", "lineHeight": 1.25, "baseline": 18
+    },
+
+    {
+      "id": "zagent", "type": "rectangle", "x": 300, "y": 110, "width": 780, "height": 360, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "#f4fcf6", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800004, "version": 1, "versionNonce": 900004,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "t_agent", "type": "text", "x": 316, "y": 118, "width": 700, "height": 25, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800005, "version": 1, "versionNonce": 900005,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "Agent · 大脑 🟢（跑在 harness：DSH 首选，可换/多个）", "originalText": "Agent · 大脑 🟢（跑在 harness：DSH 首选，可换/多个）",
+      "fontSize": 20, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 18
+    },
+
+    {
+      "id": "io", "type": "rectangle", "x": 330, "y": 150, "width": 220, "height": 80, "angle": 0,
+      "strokeColor": "#8a8a8a", "backgroundColor": "#ffffff", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800006, "version": 1, "versionNonce": 900006,
+      "isDeleted": false, "boundElements": [{ "id": "tx_io", "type": "text" }, { "id": "a_user_io", "type": "arrow" }], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_io", "type": "text", "x": 338, "y": 162, "width": 204, "height": 56, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800007, "version": 1, "versionNonce": 900007,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "交互 ⚪ harness 提供\nGUI / CLI / …\n主动找用户交流", "originalText": "交互 ⚪ harness 提供\nGUI / CLI / …\n主动找用户交流",
+      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "io", "lineHeight": 1.25, "baseline": 12
+    },
+
+    {
+      "id": "skill", "type": "rectangle", "x": 580, "y": 150, "width": 220, "height": 80, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "#d4fcdc", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800008, "version": 1, "versionNonce": 900008,
+      "isDeleted": false, "boundElements": [
+        { "id": "tx_skill", "type": "text" },
+        { "id": "a_yi_skill", "type": "arrow" },
+        { "id": "a_skill_yi", "type": "arrow" }
+      ], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_skill", "type": "text", "x": 588, "y": 162, "width": 204, "height": 56, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800009, "version": 1, "versionNonce": 900009,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "skill 🟢 task-brain\n基本交互方法（默认加载）\n对接 daemon 的唯一入口", "originalText": "skill 🟢 task-brain\n基本交互方法（默认加载）\n对接 daemon 的唯一入口",
+      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "skill", "lineHeight": 1.25, "baseline": 12
+    },
+
+    {
+      "id": "plugins", "type": "rectangle", "x": 330, "y": 250, "width": 200, "height": 90, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "#d4fcdc", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800010, "version": 1, "versionNonce": 900010,
+      "isDeleted": false, "boundElements": [{ "id": "tx_plugins", "type": "text" }], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_plugins", "type": "text", "x": 338, "y": 266, "width": 184, "height": 56, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800011, "version": 1, "versionNonce": 900011,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "插件 / MCP 🟢\n看 harness 生态\n（记忆插件等）", "originalText": "插件 / MCP 🟢\n看 harness 生态\n（记忆插件等）",
+      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "plugins", "lineHeight": 1.25, "baseline": 12
+    },
+
+    {
+      "id": "ctxmem", "type": "rectangle", "x": 850, "y": 150, "width": 200, "height": 90, "angle": 0,
+      "strokeColor": "#8a8a8a", "backgroundColor": "#ffffff", "fillStyle": "solid",
+      "strokeWidth": 1.5, "strokeStyle": "dashed", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800012, "version": 1, "versionNonce": 900012,
+      "isDeleted": false, "boundElements": [{ "id": "tx_ctxmem", "type": "text" }], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_ctxmem", "type": "text", "x": 858, "y": 166, "width": 184, "height": 56, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800013, "version": 1, "versionNonce": 900013,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "上下文记忆\n（单会话）\nharness 管理 · 与本软件无关", "originalText": "上下文记忆\n（单会话）\nharness 管理 · 与本软件无关",
+      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "ctxmem", "lineHeight": 1.25, "baseline": 12
+    },
+
+    {
+      "id": "xmem", "type": "rectangle", "x": 850, "y": 260, "width": 200, "height": 90, "angle": 0,
+      "strokeColor": "#8a8a8a", "backgroundColor": "#ffffff", "fillStyle": "solid",
+      "strokeWidth": 1.5, "strokeStyle": "dashed", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800014, "version": 1, "versionNonce": 900014,
+      "isDeleted": false, "boundElements": [{ "id": "tx_xmem", "type": "text" }], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_xmem", "type": "text", "x": 858, "y": 276, "width": 184, "height": 56, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800015, "version": 1, "versionNonce": 900015,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "跨会话记忆\n推荐安装相关插件\n与本软件无关", "originalText": "跨会话记忆\n推荐安装相关插件\n与本软件无关",
+      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "xmem", "lineHeight": 1.25, "baseline": 12
+    },
+
+    {
+      "id": "zdaemon", "type": "rectangle", "x": 300, "y": 500, "width": 780, "height": 330, "angle": 0,
+      "strokeColor": "#999999", "backgroundColor": "#f7f7f7", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800016, "version": 1, "versionNonce": 900016,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "t_daemon", "type": "text", "x": 316, "y": 508, "width": 740, "height": 25, "angle": 0,
+      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800017, "version": 1, "versionNonce": 900017,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "daemon · 永续进程 ⚪（复用原①事件层；②通知层 ③浮窗退役 🔴）", "originalText": "daemon · 永续进程 ⚪（复用原①事件层；②通知层 ③浮窗退役 🔴）",
+      "fontSize": 20, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 18
+    },
+
+    {
+      "id": "yishi", "type": "rectangle", "x": 330, "y": 540, "width": 570, "height": 60, "angle": 0,
+      "strokeColor": "#3a7bd5", "backgroundColor": "#d9e9ff", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800018, "version": 1, "versionNonce": 900018,
+      "isDeleted": false, "boundElements": [
+        { "id": "tx_yishi", "type": "text" },
+        { "id": "a_yi_skill", "type": "arrow" },
+        { "id": "a_skill_yi", "type": "arrow" },
+        { "id": "a_t0_yi", "type": "arrow" },
+        { "id": "a_tc_yi", "type": "arrow" },
+        { "id": "a_yi_db", "type": "arrow" }
+      ], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_yishi", "type": "text", "x": 340, "y": 552, "width": 550, "height": 38, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800019, "version": 1, "versionNonce": 900019,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "意识层 🔵 对接具体 harness · 可唤醒多个（daemon 不认识任何 harness）", "originalText": "意识层 🔵 对接具体 harness · 可唤醒多个（daemon 不认识任何 harness）",
+      "fontSize": 15, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "yishi", "lineHeight": 1.25, "baseline": 13
+    },
+
+    {
+      "id": "heartbeat", "type": "rectangle", "x": 930, "y": 540, "width": 140, "height": 60, "angle": 0,
+      "strokeColor": "#8a8a8a", "backgroundColor": "#ececec", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800020, "version": 1, "versionNonce": 900020,
+      "isDeleted": false, "boundElements": [{ "id": "tx_heartbeat", "type": "text" }], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_heartbeat", "type": "text", "x": 936, "y": 556, "width": 128, "height": 25, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800021, "version": 1, "versionNonce": 900021,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "心跳 ⚪\n基本运行信号", "originalText": "心跳 ⚪\n基本运行信号",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "heartbeat", "lineHeight": 1.25, "baseline": 11
+    },
+
+    {
+      "id": "ztimer", "type": "rectangle", "x": 330, "y": 620, "width": 440, "height": 185, "angle": 0,
+      "strokeColor": "#8a8a8a66", "backgroundColor": "#f0f0f0", "fillStyle": "solid",
+      "strokeWidth": 1.5, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800022, "version": 1, "versionNonce": 900022,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "t_ztimer", "type": "text", "x": 342, "y": 626, "width": 300, "height": 20, "angle": 0,
+      "strokeColor": "#8a8a8a", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800023, "version": 1, "versionNonce": 900023,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "计时器（冲突自解：合并/去抖）", "originalText": "计时器（冲突自解：合并/去抖）",
+      "fontSize": 14, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 12
+    },
+
+    {
+      "id": "timer0", "type": "rectangle", "x": 345, "y": 655, "width": 190, "height": 125, "angle": 0,
+      "strokeColor": "#8a8a8a", "backgroundColor": "#ececec", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800024, "version": 1, "versionNonce": 900024,
+      "isDeleted": false, "boundElements": [{ "id": "tx_timer0", "type": "text" }, { "id": "a_t0_yi", "type": "arrow" }], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_timer0", "type": "text", "x": 351, "y": 675, "width": 178, "height": 84, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800025, "version": 1, "versionNonce": 900025,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "本体计时器 ⚪\n不可关闭\n每10min唤醒\n（待机模式用）", "originalText": "本体计时器 ⚪\n不可关闭\n每10min唤醒\n（待机模式用）",
+      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "timer0", "lineHeight": 1.25, "baseline": 12
+    },
+
+    {
+      "id": "timerc", "type": "rectangle", "x": 555, "y": 655, "width": 200, "height": 125, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "#d4fcdc", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800026, "version": 1, "versionNonce": 900026,
+      "isDeleted": false, "boundElements": [{ "id": "tx_timerc", "type": "text" }, { "id": "a_tc_yi", "type": "arrow" }], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_timerc", "type": "text", "x": 561, "y": 675, "width": 188, "height": 84, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800027, "version": 1, "versionNonce": 900027,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "自定义计时器 🟢\n大脑设置·唤醒自己\n周期/一次性/跳跃\n代码直跑·个性化", "originalText": "自定义计时器 🟢\n大脑设置·唤醒自己\n周期/一次性/跳跃\n代码直跑·个性化",
+      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "timerc", "lineHeight": 1.25, "baseline": 12
+    },
+
+    {
+      "id": "backend", "type": "rectangle", "x": 800, "y": 620, "width": 270, "height": 185, "angle": 0,
+      "strokeColor": "#8a8a8a", "backgroundColor": "#ececec", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 3 }, "seed": 800028, "version": 1, "versionNonce": 900028,
+      "isDeleted": false, "boundElements": [{ "id": "tx_backend", "type": "text" }, { "id": "a_yi_db", "type": "arrow" }], "updated": 1735000000000, "link": null, "locked": false
+    },
+    {
+      "id": "tx_backend", "type": "text", "x": 808, "y": 648, "width": 254, "height": 130, "angle": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800029, "version": 1, "versionNonce": 900029,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "数据后端 ⚪\nSQLite 档案 + 配套后端\n复用原①事件层\n（写入过校验，\nAI 不裸写库）", "originalText": "数据后端 ⚪\nSQLite 档案 + 配套后端\n复用原①事件层\n（写入过校验，\nAI 不裸写库）",
+      "fontSize": 14, "fontFamily": 2, "textAlign": "center", "verticalAlign": "middle", "containerId": "backend", "lineHeight": 1.25, "baseline": 12
+    },
+
+    {
+      "id": "a_user_io", "type": "arrow", "x": 552, "y": 50, "width": -96, "height": 96, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800030, "version": 1, "versionNonce": 900030,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "points": [[0, 0], [-96, 96]], "lastCommittedPoint": null, "startBinding": { "elementId": "u1", "focus": 0, "gap": 6 }, "endBinding": { "elementId": "io", "focus": -0.4, "gap": 6 },
+      "startArrowhead": null, "endArrowhead": "arrow", "elbowed": false
+    },
+    {
+      "id": "l_user_io", "type": "text", "x": 560, "y": 88, "width": 130, "height": 18, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800031, "version": 1, "versionNonce": 900031,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "对话 / 主动交流", "originalText": "对话 / 主动交流",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 11
+    },
+
+    {
+      "id": "a_t0_yi", "type": "arrow", "x": 440, "y": 653, "width": 0, "height": -49, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800032, "version": 1, "versionNonce": 900032,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "points": [[0, 0], [0, -49]], "lastCommittedPoint": null, "startBinding": { "elementId": "timer0", "focus": 0.4, "gap": 4 }, "endBinding": { "elementId": "yishi", "focus": 0.5, "gap": 4 },
+      "startArrowhead": null, "endArrowhead": "arrow", "elbowed": false
+    },
+    {
+      "id": "l_t0_yi", "type": "text", "x": 448, "y": 622, "width": 90, "height": 18, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800033, "version": 1, "versionNonce": 900033,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "每10min唤醒", "originalText": "每10min唤醒",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 11
+    },
+
+    {
+      "id": "a_tc_yi", "type": "arrow", "x": 655, "y": 653, "width": 0, "height": -49, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800034, "version": 1, "versionNonce": 900034,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "points": [[0, 0], [0, -49]], "lastCommittedPoint": null, "startBinding": { "elementId": "timerc", "focus": 0.4, "gap": 4 }, "endBinding": { "elementId": "yishi", "focus": -0.2, "gap": 4 },
+      "startArrowhead": null, "endArrowhead": "arrow", "elbowed": false
+    },
+    {
+      "id": "l_tc_yi", "type": "text", "x": 663, "y": 622, "width": 100, "height": 18, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800035, "version": 1, "versionNonce": 900035,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "到点唤醒/提醒", "originalText": "到点唤醒/提醒",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 11
+    },
+
+    {
+      "id": "a_yi_skill", "type": "arrow", "x": 620, "y": 538, "width": 35, "height": -300, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800036, "version": 1, "versionNonce": 900036,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "points": [[0, 0], [35, -300]], "lastCommittedPoint": null, "startBinding": { "elementId": "yishi", "focus": 0.2, "gap": 5 }, "endBinding": { "elementId": "skill", "focus": -0.7, "gap": 5 },
+      "startArrowhead": null, "endArrowhead": "arrow", "elbowed": false
+    },
+    {
+      "id": "l_yi_skill", "type": "text", "x": 500, "y": 380, "width": 150, "height": 18, "angle": 0,
+      "strokeColor": "#2e9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800037, "version": 1, "versionNonce": 900037,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "唤醒（事件+上下文）", "originalText": "唤醒（事件+上下文）",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "right", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 11
+    },
+
+    {
+      "id": "a_skill_yi", "type": "arrow", "x": 760, "y": 234, "width": -20, "height": 302, "angle": 0,
+      "strokeColor": "#3a7bd5", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800038, "version": 1, "versionNonce": 900038,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "points": [[0, 0], [-20, 302]], "lastCommittedPoint": null, "startBinding": { "elementId": "skill", "focus": 0.7, "gap": 5 }, "endBinding": { "elementId": "yishi", "focus": -0.5, "gap": 5 },
+      "startArrowhead": null, "endArrowhead": "arrow", "elbowed": false
+    },
+    {
+      "id": "l_skill_yi", "type": "text", "x": 770, "y": 380, "width": 150, "height": 18, "angle": 0,
+      "strokeColor": "#3a7bd5", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800039, "version": 1, "versionNonce": 900039,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "命令 · 读写 · 设计时器", "originalText": "命令 · 读写 · 设计时器",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 11
+    },
+
+    {
+      "id": "a_yi_db", "type": "arrow", "x": 902, "y": 572, "width": 40, "height": 44, "angle": 0,
+      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": { "type": 2 }, "seed": 800040, "version": 1, "versionNonce": 900040,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "points": [[0, 0], [40, 44]], "lastCommittedPoint": null, "startBinding": { "elementId": "yishi", "focus": 0.6, "gap": 5 }, "endBinding": { "elementId": "backend", "focus": -0.6, "gap": 5 },
+      "startArrowhead": "arrow", "endArrowhead": "arrow", "elbowed": false
+    },
+    {
+      "id": "l_yi_db", "type": "text", "x": 912, "y": 590, "width": 80, "height": 18, "angle": 0,
+      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "groupIds": [], "frameId": null, "roundness": null, "seed": 800041, "version": 1, "versionNonce": 900041,
+      "isDeleted": false, "boundElements": null, "updated": 1735000000000, "link": null, "locked": false,
+      "text": "档案读写", "originalText": "档案读写",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "left", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25, "baseline": 11
+    }
+  ],
+  "appState": { "viewBackgroundColor": "#ffffff", "gridSize": null },
+  "files": {}
+}
