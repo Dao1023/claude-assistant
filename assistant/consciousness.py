@@ -68,10 +68,19 @@ def _extract_session_id(ndjson_text: str) -> Optional[str]:
     return None
 
 
-def _run(args: list[str], timeout: float) -> str:
+def _run(args: list[str], message: str, timeout: float) -> str:
+    """任务文本一律走 stdin(dsh headless 的 `-`),绕开 cmd.exe 对
+    换行/内嵌引号的参数绞碎——实测多行字条经 argv 传输会被截断。
+
+    环境注入 DSH_PERMISSION_MODE=danger-full-access:女仆要执行重排闹钟等
+    本机命令,默认的 workspace-write+审批 ask 在 headless 下无人可批,必死锁。
+    (信任边界:女仆跑在 daemon 同机同用户下,执行的是自家字条里的命令。)
+    """
+    env = dict(os.environ, DSH_PERMISSION_MODE="danger-full-access")
     proc = subprocess.run(          # noqa: S603 列表参数,无 shell 拼接
-        [_dsh_cmd(), "headless", *args],
-        capture_output=True, text=True, encoding="utf-8", timeout=timeout,
+        [_dsh_cmd(), "headless", *args, "-"],
+        input=message, capture_output=True, text=True, encoding="utf-8",
+        timeout=timeout, env=env,
     )
     if proc.returncode != 0:
         raise RuntimeError(
@@ -90,13 +99,13 @@ def wake(message: str, *, timeout: float = 120.0,
     sid = session_id or load_session_id()
     if sid:
         try:
-            answer = _run(["--session-id", sid, message], timeout)
+            answer = _run(["--session-id", sid], message, timeout)
             return answer, sid
         except (RuntimeError, subprocess.TimeoutExpired):
             pass                    # 会话失效 → 开新的(大脑失忆,档案还在)
 
     # 新会话:用 --json 拿 sessionId
-    out = _run(["--json", message], timeout)
+    out = _run(["--json"], message, timeout)
     new_sid = _extract_session_id(out)
     if new_sid:
         _save_session_id(new_sid)

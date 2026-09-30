@@ -8,6 +8,7 @@
 | 文档 | 内容 |
 |---|---|
 | [architecture.excalidraw](architecture.excalidraw) | **V4.1 组成架构**（活的协作画布：Excalidraw 打开直接编辑；节律四态独立于此图） |
+| [community-survey.md](community-survey.md) | **社区大调查与 V4.2 方案**:六路深挖 DSH 生态,选型 dsh-desktop/dsh-cron/dsh-mnemon/dsh-im,唯一自建=dsh-task-brain 插件;含施工路线图 |
 | [rhythm.md](rhythm.md) | **节律四态**：休眠/睡眠/待机/工作；唤醒经济学；换档防抖；开放问题 |
 | [task-system.md](task-system.md) | **双驱动任务模型**（核心 IP）：start 越久没做越重要 `log(间隔/周期)`、end 越近截止越急 `-log(剩余)`、周期修饰符 |
 | [schema.md](schema.md) | **档案规范**：SQLite 表结构 + REST 接口（数据后端的规范；「模块落位」一节是 V2 遗留，待修） |
