@@ -187,20 +187,49 @@ class TimerEngine:
         return None
 
 
-def _cli() -> None:  # pragma: no cover - 手动入口
+def _cli() -> None:  # pragma: no cover - 手动/女仆入口
     import argparse
-    p = argparse.ArgumentParser(description="计时器引擎(手动/调试入口)")
+    p = argparse.ArgumentParser(description="计时器引擎(手动/女仆重排闹钟入口)")
     p.add_argument("--loop", action="store_true", help="常驻循环,每 30s 推进一次")
     p.add_argument("--wake", action="store_true", help="到点时真的唤醒大脑(consciousness)")
-    p.add_argument("--add-once", metavar="SEC", type=int, help="加一个 N 秒后的一次性提醒(测试)")
-    p.add_argument("--add-payload", default="测试提醒", help="配合 --add-once 的载荷")
+    sub = p.add_argument_group("闹钟操作(女仆醒后重排用,做完即退)")
+    sub.add_argument("--list", action="store_true", help="列出全部闹钟")
+    sub.add_argument("--add-once", metavar=("AT|IN_SEC"), nargs=1,
+                     help="加一次性闹钟:绝对时间戳 或 +相对秒(如 +3600)")
+    sub.add_argument("--add-interval", metavar=("FIRST", "EVERY"), nargs=2, type=int,
+                     help="加周期闹钟:首次时间戳 周期秒")
+    sub.add_argument("--label", default="", help="闹钟名")
+    sub.add_argument("--payload", default="", help="字条内容(醒来读到的话)")
+    sub.add_argument("--remove", metavar="ID", help="撤闹钟")
+    sub.add_argument("--reset", metavar=("ID", "AT|IN_SEC"), nargs=2,
+                     help="改闹钟到 绝对时间戳 或 +相对秒")
     args = p.parse_args()
 
     eng = TimerEngine()
-    if args.add_once is not None:
-        tid = eng.add("once", in_sec=args.add_once, label="测试",
-                      payload=args.add_payload, by="user")
-        print(f"已加: {tid} ({args.add_once}s 后)")
+    if args.add_once:
+        v = args.add_once[0]
+        at = _parse_when(v)
+        tid = eng.add("once", at=at, label=args.label, payload=args.payload, by="maid")
+        print(tid)
+        return
+    if args.add_interval:
+        first, every = args.add_interval
+        tid = eng.add("interval", at=first, every=every,
+                      label=args.label, payload=args.payload, by="maid")
+        print(tid)
+        return
+    if args.remove:
+        print("ok" if eng.remove(args.remove) else "not-found")
+        return
+    if args.reset:
+        tid, v = args.reset
+        at = _parse_when(v)
+        print("ok" if eng.reset(tid, at=at) else "not-found")
+        return
+    if args.list:
+        for t in eng.list():
+            print(f"{t['id']}  {t['kind']:8s} fire_at={t['fire_at']}  "
+                  f"[{t['label']}] {t['payload'][:40]}")
         return
 
     if not args.loop:
@@ -217,6 +246,13 @@ def _cli() -> None:  # pragma: no cover - 手动入口
                 answer, sid = consciousness.wake(batch["message"])
                 print(f"大脑: {answer}  (session={sid})")
         time.sleep(30)
+
+
+def _parse_when(v: str) -> Optional[int]:
+    """'+3600' 相对秒;否则视为绝对 unix 时间戳。"""
+    if v.startswith("+"):
+        return _now() + int(v[1:])
+    return int(v)
 
 
 if __name__ == "__main__":  # pragma: no cover
